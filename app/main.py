@@ -3,8 +3,11 @@ SAGZFX ACADEMY - FastAPI application entrypoint.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func, select
 
 from app.core.config import settings
+from app.core.database import AsyncSessionLocal
+from app.models import CourseModule
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -52,3 +55,12 @@ async def brand():
         "phones": [settings.PHONE_PRIMARY, settings.PHONE_SECONDARY],
         "exness_ib_link": settings.EXNESS_IB_LINK,
     }
+
+
+@app.get(f"{API}/db-check", tags=["system"])
+async def db_check():
+    """Prove the app can reach Neon and read a real row count."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(func.count()).select_from(CourseModule))
+        count = result.scalar_one()
+    return {"database": "connected", "course_modules_count": count}
