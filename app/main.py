@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models import CourseModule
 from app.api.v1.auth import router as auth_router
+from app.api.v1.dev import router as dev_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -66,3 +67,5 @@ async def db_check():
         count = result.scalar_one()
     return {"database": "connected", "course_modules_count": count}
 app.include_router(auth_router, prefix=API)
+if settings.ENV == "development":
+    app.include_router(dev_router, prefix=API)
