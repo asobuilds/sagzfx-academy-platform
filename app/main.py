@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models import CourseModule
+from app.api.v1.auth import router as auth_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -64,3 +65,4 @@ async def db_check():
         result = await session.execute(select(func.count()).select_from(CourseModule))
         count = result.scalar_one()
     return {"database": "connected", "course_modules_count": count}
+app.include_router(auth_router, prefix=API)
