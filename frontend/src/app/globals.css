@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+/* ─── SAGZFX ACADEMY - Design System ─────────────────────────────
+   Colors extracted from the client's physical flyer.
+   Dark navy base + brand blue + signal green + accent cyan + gold.
+   ──────────────────────────────────────────────────────────── */
+
+:root {
+  /* Base layers */
+  --bg-base: #050B14;
+  --bg-elevated: #0A1424;
+  --bg-glass: rgba(15, 30, 51, 0.55);
+  --bg-glass-strong: rgba(15, 30, 51, 0.85);
+
+  /* Border */
+  --border-subtle: rgba(80, 130, 200, 0.15);
+  --border-strong: rgba(96, 165, 250, 0.35);
+
+  /* Brand palette (from flyer) */
+  --brand-blue: #1E40AF;
+  --brand-blue-bright: #2563EB;
+  --brand-cyan: #06B6D4;
+  --brand-bull: #0EA5E9;
+  --signal-green: #16A34A;
+  --signal-green-bright: #22C55E;
+  --alert-red: #DC2626;
+  --gold: #F59E0B;
+
+  /* Text */
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* ─── Background texture - candlestick chart feel ─────────────── */
+
+body {
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(30, 64, 175, 0.06) 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+/* ─── Glassmorphism utilities ──────────────────────────────── */
+
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border-subtle);
+}
+
+.glass-strong {
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid var(--border-strong);
+}
+
+/* ─── Hover lift effect ───────────────────────────────────── */
+
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  box-shadow:
+    0 20px 40px -12px rgba(14, 165, 233, 0.25),
+    0 0 0 1px rgba(96, 165, 250, 0.2);
+}
+
+/* ─── Brand gradients ─────────────────────────────────────── */
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-cyan) 100%);
+}
+
+.green-gradient {
+  background: linear-gradient(135deg, var(--signal-green) 0%, var(--signal-green-bright) 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--brand-cyan) 0%, var(--brand-bull) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ─── Pill badge (matches flyer's "PHYSICAL CLASS" / "ONLINE CLASS") ── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pill-green {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--signal-green-bright);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.pill-blue {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--brand-bull);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.pill-gold {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.pill-red {
+  background: rgba(220, 38, 38, 0.15);
+  color: var(--alert-red);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+/* ─── Ribbon CTA (matches flyer's "FREE 7-DAYS SUMMIT" ribbon) ── */
+
+.ribbon {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  background: var(--alert-red);
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transform: skewX(-6deg);
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+}
+
+.ribbon > span {
+  display: inline-block;
+  transform: skewX(6deg);
+}
+
+/* ─── Custom scrollbar ────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-elevated);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.25);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 165, 250, 0.4);
+}
+
+/* ─── Animations ──────────────────────────────────────────── */
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) }
+  50%      { transform: translateY(-8px) }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.3) }
+  50%      { box-shadow: 0 0 40px rgba(14, 165, 233, 0.6) }
+}
+
+@keyframes ticker-up {
+  from { opacity: 0; transform: translateY(6px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+.animate-float   { animation: float-slow 4s ease-in-out infinite }
+.animate-glow    { animation: pulse-glow 3s ease-in-out infinite }
+.animate-ticker  { animation: ticker-up 0.4s ease-out both }
