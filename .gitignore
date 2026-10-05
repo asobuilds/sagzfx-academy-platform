@@ -20,3 +20,10 @@ venv/
 
 # Test artifacts
 .pytest_cache/
+
+# ngrok binary (local dev tool)
+ngrok
+ngrok.tgz
+
+# Session data
+*.session
