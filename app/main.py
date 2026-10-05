@@ -13,6 +13,7 @@ from app.api.v1.dev import router as dev_router
 from app.api.v1.curriculum import router as curriculum_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.mt5_demo import router as mt5_demo_router
+from app.api.v1.community import router as community_router
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
@@ -72,5 +73,6 @@ app.include_router(auth_router, prefix=API)
 app.include_router(curriculum_router, prefix=API)
 app.include_router(payments_router, prefix=API)
 app.include_router(mt5_demo_router, prefix=API)
+app.include_router(community_router, prefix=API)
 if settings.ENV == "development":
     app.include_router(dev_router, prefix=API)

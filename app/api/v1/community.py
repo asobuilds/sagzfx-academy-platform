@@ -1,0 +1,73 @@
+"""
+SAGZFX ACADEMY - Community endpoints.
+
+Endpoints:
+    GET  /community/realtime-config   -> Supabase config + channel for caller
+    POST /community/announce          -> admin-only: post to Discord webhook
+"""
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user, require_admin
+from app.core.config import settings
+from app.core.database import get_db
+from app.models import PremiumPurchase, User
+from app.schemas.community import (
+    AnnounceRequest,
+    AnnounceResponse,
+    RealtimeConfig,
+)
+from app.services.community import (
+    post_discord_announcement,
+    realtime_channel_for_tier,
+)
+
+router = APIRouter(prefix="/community", tags=["community"])
+
+
+async def _resolve_tier(user: User, db: AsyncSession) -> str:
+    """Determine the caller's access tier from DB state."""
+    stmt = (
+        select(PremiumPurchase)
+        .where(
+            PremiumPurchase.user_id == user.user_id,
+            PremiumPurchase.subscription_status == "active",
+        )
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none() is not None:
+        return "premium"
+    if user.has_paid_tuition:
+        return "tuition"
+    return "registered"
+
+
+@router.get("/realtime-config", response_model=RealtimeConfig)
+async def realtime_config(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return the config the frontend uses to subscribe to Supabase Realtime.
+    Tier is resolved from DB state on every call — no caching.
+    """
+    tier = await _resolve_tier(user, db)
+
+    return RealtimeConfig(
+        supabase_url=settings.SUPABASE_URL or None,
+        supabase_anon_key=settings.SUPABASE_ANON_KEY or None,
+        channel=realtime_channel_for_tier(tier),
+        access_tier=tier,
+    )
+
+
+@router.post("/announce", response_model=AnnounceResponse)
+async def announce(
+    payload: AnnounceRequest,
+    _admin: User = Depends(require_admin),
+):
+    """Post an announcement to the matching Discord channel. Admin only."""
+    result = await post_discord_announcement(payload.message, payload.channel)
+    return AnnounceResponse(**result)
