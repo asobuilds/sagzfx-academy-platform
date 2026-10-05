@@ -56,3 +56,54 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 - Products: tuition (NGN 150k), masterclass-pass (NGN 75k), vip-smc-indicators (NGN 25k)
 
 ## Next: Step 12 (MT5 demo provisioning), Step 13 (Community), Step 14 (Frontend)
+
+## Phase 10 (partial) - Next.js Frontend built & working
+Location: frontend/ (same repo as backend)
+
+Stack: Next.js 16.3.8 + TypeScript + Tailwind CSS v4 + Turbopack
+Fonts: Inter (body) + Space Grotesk (display) via next/font
+
+Design system extracted from client's physical flyer:
+- Base bg: #050B14 dark navy
+- Brand blue: #1E40AF -> #2563EB
+- Signal green: #16A34A -> #22C55E
+- Accent cyan: #06B6D4, Bull blue: #0EA5E9
+- Gold: #F59E0B, Alert red: #DC2626
+- Utilities: .glass, .glass-strong, .hover-lift, .pill-{green,blue,gold,red},
+  .ribbon, .text-gradient, .brand-gradient, .green-gradient, .animate-float,
+  .animate-glow, .animate-ticker
+
+Pages built & verified:
+- /                          landing (hero + candlestick bg + curriculum + campus + CTA + contact)
+- /login                     email+password form -> POST /auth/login -> tokens to localStorage
+- /register                  new account -> auto-login -> tokens to localStorage
+- /dashboard                 tier-aware dashboard; hits /auth/me + /curriculum/modules +
+                             /mt5-demo/status + /community/realtime-config
+
+Verified working:
+- Registration writes to Neon, auto-login succeeds
+- JWT stored in localStorage; navbar reads it and shows Dashboard/Logout
+- Dashboard renders Premium state correctly (47/47 unlocked, MT5 login shown, exness link)
+
+Env (frontend/.env.local, gitignored):
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+
+## RESUME TOMORROW AT
+1. Test dashboard as a REGISTERED user (test2@sagzfx.dev) to verify tier UI changes
+2. Sub-step 14i: /module/[id] page (YouTube masked player + tier gate)
+3. Sub-step 14j: /pricing page (Paystack init buttons -> /payments/init)
+4. Sub-step 14k: /payment-success and /payment-cancel pages
+5. Sub-step 15: deploy frontend (Vercel) + wire prod API URL
+
+## How to resume tomorrow
+Terminal A (backend):
+  cd ~/sagzfx-academy-platform && source .venv/bin/activate
+  uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+Terminal B (frontend):
+  cd ~/sagzfx-academy-platform/frontend && npm run dev
+  # opens on http://localhost:3000
+
+Terminal C (optional, for payments):
+  cd ~/sagzfx-academy-platform && ./ngrok http 8000
+  # then update webhook URL in Paystack Test mode if the ngrok URL changed
