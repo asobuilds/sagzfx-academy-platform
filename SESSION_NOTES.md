@@ -46,3 +46,13 @@ cd /home/student/sagzfx-academy-platform
 source .venv/bin/activate
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 # then open http://127.0.0.1:8000/docs
+
+## Phase 7 complete
+- Paystack payment integration working end-to-end
+- POST /api/v1/payments/init          -> returns checkout_url
+- POST /api/v1/payments/webhook/paystack -> verifies HMAC-SHA512 signature
+- Webhook URL configured in Paystack Test mode (ngrok tunnel)
+- Tested with Paystack test card 4084 0840 8408 4081
+- Products: tuition (NGN 150k), masterclass-pass (NGN 75k), vip-smc-indicators (NGN 25k)
+
+## Next: Step 12 (MT5 demo provisioning), Step 13 (Community), Step 14 (Frontend)
