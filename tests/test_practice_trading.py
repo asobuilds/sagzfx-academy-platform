@@ -5,14 +5,14 @@ from app.services.practice_trading import unrealized_pnl, validate_protective_pr
 
 
 class PracticeTradingCalculationTests(unittest.TestCase):
-    def test_buy_profit_and_loss(self):
-        self.assertEqual(unrealized_pnl("buy", Decimal("100"), Decimal("1.10"), Decimal("1.12")), Decimal("2.00"))
-        self.assertEqual(unrealized_pnl("buy", Decimal("100"), Decimal("1.10"), Decimal("1.08")), Decimal("-2.00"))
+    def test_standard_lot_buy_profit_and_loss(self):
+        self.assertEqual(unrealized_pnl("buy", Decimal("1"), Decimal("1.1000"), Decimal("1.1100")), Decimal("1000.0000"))
+        self.assertEqual(unrealized_pnl("buy", Decimal("1"), Decimal("1.1000"), Decimal("1.0900")), Decimal("-1000.0000"))
 
-    def test_sell_profit_and_loss(self):
-        self.assertEqual(unrealized_pnl("sell", Decimal("100"), Decimal("1.10"), Decimal("1.08")), Decimal("2.00"))
+    def test_mini_lot_sell_profit(self):
+        self.assertEqual(unrealized_pnl("sell", Decimal("0.10"), Decimal("1.1000"), Decimal("1.0900")), Decimal("100.00000"))
 
-    def test_invalid_quantity_is_rejected(self):
+    def test_invalid_lot_size_is_rejected(self):
         with self.assertRaises(ValueError):
             unrealized_pnl("buy", Decimal("0"), Decimal("1"), Decimal("2"))
 
