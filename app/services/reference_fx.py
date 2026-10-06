@@ -12,6 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 FRANKFURTER_BASE_URL = "https://api.frankfurter.dev/v2"
+FRANKFURTER_V1_BASE_URL = "https://api.frankfurter.dev/v1"
 SUPPORTED_PRACTICE_PAIRS = {
     "EURUSD": ("EUR", "USD"),
     "GBPUSD": ("GBP", "USD"),
