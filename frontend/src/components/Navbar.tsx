@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { endpoints, getToken, clearTokens, type User } from "@/lib/api";
 
 export default function Navbar() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(getToken()));
 
   useEffect(() => {
-    if (!getToken()) {
-      setLoading(false);
-      return;
-    }
+    if (!getToken()) return;
     endpoints
       .me()
       .then(setUser)
@@ -26,7 +25,8 @@ export default function Navbar() {
   const logout = () => {
     clearTokens();
     setUser(null);
-    window.location.href = "/";
+    router.push("/");
+    router.refresh();
   };
 
   return (
