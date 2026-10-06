@@ -1,18 +1,21 @@
-"""Pure calculations for the SAGZFX paper-trading engine.
+"""Pure calculations for SAGZFX Practice Trading.
 
-These functions never source a price themselves. Callers must supply prices from
-an approved market-data adapter before any executable trading route is enabled.
+Prices must be supplied by an approved market-data adapter. The calculation
+layer never invents or fetches a price.
 """
 from decimal import Decimal
 
+STANDARD_FX_CONTRACT_SIZE = Decimal("100000")
 
-def unrealized_pnl(side: str, quantity: Decimal, entry_price: Decimal, market_price: Decimal) -> Decimal:
-    if quantity <= 0:
-        raise ValueError("quantity must be positive")
+
+def unrealized_pnl(side: str, lot_size: Decimal, entry_price: Decimal, market_price: Decimal, contract_size: Decimal = STANDARD_FX_CONTRACT_SIZE) -> Decimal:
+    if lot_size <= 0:
+        raise ValueError("lot size must be positive")
+    units = lot_size * contract_size
     if side == "buy":
-        return (market_price - entry_price) * quantity
+        return (market_price - entry_price) * units
     if side == "sell":
-        return (entry_price - market_price) * quantity
+        return (entry_price - market_price) * units
     raise ValueError("side must be buy or sell")
 
 
