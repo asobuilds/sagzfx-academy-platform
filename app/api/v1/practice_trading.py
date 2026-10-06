@@ -67,16 +67,23 @@ async def reset_account(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    account = await _account_for_user(db, user)
+    result = await db.execute(
+        select(PracticeAccount)
+        .where(PracticeAccount.user_id == user.user_id)
+        .with_for_update()
+    )
+    account = result.scalar_one_or_none()
     if account is None:
         raise HTTPException(status_code=404, detail="Practice account not activated")
+
+    reset_amount = account.starting_balance - account.balance
     account.balance = account.starting_balance
     account.reset_count += 1
     db.add(
         PracticeLedgerEntry(
             account_id=account.account_id,
             entry_type="reset",
-            amount=0,
+            amount=reset_amount,
             balance_after=account.starting_balance,
             note=f"Practice account reset #{account.reset_count}",
         )
