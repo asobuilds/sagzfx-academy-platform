@@ -184,6 +184,12 @@ export const endpoints = {
       { method: "POST" },
     ),
 
+  provisionMt5: () =>
+    api<{ login: string; password: string; investor_password: string; server: string; exness_ib_link: string; created_at: string }>(
+      "/api/v1/mt5-demo/provision",
+      { method: "POST" },
+    ),
+
   realtimeConfig: () =>
     api<{ supabase_url: string | null; supabase_anon_key: string | null; channel: string; access_tier: string }>(
       "/api/v1/community/realtime-config",
