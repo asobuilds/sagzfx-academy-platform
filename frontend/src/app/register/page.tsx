@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { endpoints, setTokens, ApiError } from "@/lib/api";
+import { endpoints, ApiError } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,10 +20,10 @@ export default function RegisterPage() {
 
     try {
       await endpoints.register(fullName, email, password);
-      // Auto-login after register
-      const tokens = await endpoints.login(email, password);
-      setTokens(tokens.access_token, tokens.refresh_token);
+      // Auto-login after register; backend establishes the HttpOnly session.
+      await endpoints.login(email, password);
       router.push("/dashboard");
+      router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(typeof err.detail === "string" ? err.detail : "Registration failed.");
