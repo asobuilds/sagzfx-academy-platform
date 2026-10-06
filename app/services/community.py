@@ -54,15 +54,11 @@ async def post_discord_announcement(
 
 
 def realtime_channel_for_tier(access_tier: str) -> str:
-    """
-    Channel naming convention the frontend uses for Supabase Realtime.
-    Registered: sagzfx:free
-    Tuition:    sagzfx:tuition
-    Premium:    sagzfx:premium
-    """
+    """Map account learning plans to their mentorship realtime channel."""
     mapping = {
-        "premium": "sagzfx:premium",
-        "tuition": "sagzfx:tuition",
+        "masters": "sagzfx:masters",
+        "advanced": "sagzfx:advanced",
+        "beginner": "sagzfx:beginner",
         "registered": "sagzfx:free",
     }
     return mapping.get(access_tier, "sagzfx:free")
