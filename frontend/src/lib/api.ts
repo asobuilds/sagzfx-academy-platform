@@ -111,6 +111,10 @@ export type User = {
   email: string;
   role: string;
   has_paid_tuition: boolean;
+  learning_plan: "registered" | "beginner" | "advanced" | "masters";
+  class_started_at: string | null;
+  class_expires_at: string | null;
+  mentorship_lifetime: boolean;
   exness_demo_account_number: string | null;
   created_at: string;
 };
@@ -131,7 +135,7 @@ export type ModuleSummary = {
 };
 
 export type CatalogResponse = {
-  access_tier: "registered" | "tuition" | "premium";
+  access_tier: "registered" | "beginner" | "advanced" | "masters";
   total: number;
   unlocked_count: number;
   modules: ModuleSummary[];
@@ -169,6 +173,8 @@ export const endpoints = {
   me: () => api<User>("/api/v1/auth/me"),
 
   catalog: () => api<CatalogResponse>("/api/v1/curriculum/modules"),
+
+  module: (module_id: string) => api<ModuleSummary & { video_url_slug: string | null }>(`/api/v1/curriculum/modules/${module_id}`),
 
   mt5Status: () => api<{ bound: boolean; login: string | null; server: string | null; exness_ib_link: string }>("/api/v1/mt5-demo/status"),
 
