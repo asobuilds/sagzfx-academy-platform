@@ -19,6 +19,8 @@ class CompletePracticeTradingContractTests(unittest.TestCase):
   self.assertIn("not broker bid/ask prices",s)
   self.assertIn("practiceQuote",s)
   self.assertIn("closePracticeOrder",s)
+  self.assertIn("Reset to $10,000",s)
+  self.assertIn("Win Rate",s)
  def test_no_real_broker_execution_is_added(self):
   s=(ROOT/"app"/"api"/"v1"/"practice_trading.py").read_text()
   self.assertNotIn("MetaTrader",s)
