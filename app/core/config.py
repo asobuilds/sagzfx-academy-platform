@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:3000"
 
     # Exness
-    EXNESS_IB_LINK: str = "https://one.exness-track.com/a/sagzfx"
-    MT5_BRIDGE_MODE: str = "demo_sandbox"
+    EXNESS_IB_LINK: str = "https://one.exnessonelink.com/a/ut6xqvmg34"
+    MT5_BRIDGE_MODE: str = "disabled"
 
     # Community
     SUPABASE_URL: str | None = None

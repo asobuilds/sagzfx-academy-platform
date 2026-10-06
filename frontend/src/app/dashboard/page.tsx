@@ -11,11 +11,14 @@ import {
   type ModuleSummary,
 } from "@/lib/api";
 
-type MT5Status = {
-  bound: boolean;
-  login: string | null;
-  server: string | null;
-  exness_ib_link: string;
+type PracticeAccount = {
+  account_id: string;
+  starting_balance: string;
+  balance: string;
+  currency: string;
+  status: string;
+  reset_count: number;
+  execution_enabled: boolean;
 };
 
 type RealtimeConfig = {
@@ -30,24 +33,23 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
-  const [mt5, setMt5] = useState<MT5Status | null>(null);
+  const [practice, setPractice] = useState<PracticeAccount | null>(null);
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [provisioning, setProvisioning] = useState(false);
-  const [newDemo, setNewDemo] = useState<{ login: string; password: string; investor_password: string; server: string } | null>(null);
+  const [creatingPractice, setCreatingPractice] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       endpoints.me(),
       endpoints.catalog(),
-      endpoints.mt5Status(),
+      endpoints.practiceAccount(),
       endpoints.realtimeConfig(),
     ])
-      .then(([u, c, m, r]) => {
+      .then(([u, c, p, r]) => {
         setUser(u);
         setCatalog(c);
-        setMt5(m);
+        setPractice(p);
         setRealtime(r);
       })
       .catch((err) => {
@@ -60,17 +62,15 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  async function provisionMt5() {
-    setProvisioning(true);
+  async function createPracticeAccount() {
+    setCreatingPractice(true);
     setError(null);
     try {
-      const credentials = await endpoints.provisionMt5();
-      setNewDemo(credentials);
-      setMt5(await endpoints.mt5Status());
+      setPractice(await endpoints.createPracticeAccount());
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Unable to provision MT5 demo.");
+      setError(err instanceof ApiError ? String(err.detail) : "Unable to create practice account.");
     } finally {
-      setProvisioning(false);
+      setCreatingPractice(false);
     }
   }
 
@@ -86,7 +86,7 @@ export default function DashboardPage() {
   }
 
   // ─── Error state ───────────────────────────────────────
-  if (error || !user || !catalog || !mt5 || !realtime) {
+  if (error || !user || !catalog || !realtime) {
     return (
       <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
         <div className="glass-strong rounded-2xl p-8 max-w-md text-center space-y-4">
@@ -153,9 +153,8 @@ export default function DashboardPage() {
           <StatBox label="Modules Unlocked" value={`${catalog.unlocked_count} / ${catalog.total}`} />
           <StatBox label="Community" value={realtime.channel} mono />
           <StatBox
-            label="MT5 Demo"
-            value={mt5.bound ? (mt5.login ?? "Bound") : "Not activated"}
-            mono={mt5.bound}
+            label="Practice"
+            value={practice ? `${practice.currency} ${Number(practice.balance).toLocaleString()}` : "Not activated"}
           />
           <StatBox label="Plan" value={tier.toUpperCase()} />
           <StatBox label="Class Ends" value={user.class_expires_at ? new Date(user.class_expires_at).toLocaleDateString() : "Not active"} />
@@ -163,69 +162,47 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── MT5 Card ────────────────────────────────────── */}
+      {/* ─── Practice Trading Card ─────────────────────── */}
       <div className="glass hover-lift rounded-3xl p-8 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center font-bold text-white">
-              MT5
-            </div>
+            <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center font-bold text-white">FX</div>
             <div>
-              <h2
-                className="text-2xl font-bold tracking-tight"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                Exness Demo Sandbox
+              <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                SAGZFX Practice Trading
               </h2>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Free MT5 demo for every account type — no paid plan required
+                Free virtual-money practice account for every registered SAGZFX user.
               </p>
             </div>
           </div>
-
-          {mt5.bound ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="pill pill-green">Active</span>
-              <span className="font-mono text-sm glass px-3 py-1.5 rounded-lg">
-                {mt5.login}
-              </span>
-            </div>
+          {practice ? (
+            <span className="pill pill-green">Active</span>
           ) : (
-            <button
-              type="button"
-              onClick={provisionMt5}
-              disabled={provisioning}
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift disabled:opacity-50"
-            >
-              {provisioning ? "Provisioning…" : "Provision Free Demo"}
+            <button type="button" onClick={createPracticeAccount} disabled={creatingPractice}
+              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift disabled:opacity-50">
+              {creatingPractice ? "Creating…" : "Activate Free Practice Account"}
             </button>
           )}
         </div>
 
-        {newDemo && (
-          <div className="rounded-2xl p-5 border space-y-2">
-            <p className="font-semibold">Save these MT5 demo credentials now. The password is shown only once.</p>
-            <p className="font-mono text-sm">Login: {newDemo.login}</p>
-            <p className="font-mono text-sm">Password: {newDemo.password}</p>
-            <p className="font-mono text-sm">Investor password: {newDemo.investor_password}</p>
-            <p className="font-mono text-sm">Server: {newDemo.server}</p>
+        {practice && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatBox label="Virtual Balance" value={`${practice.currency} ${Number(practice.balance).toLocaleString()}`} />
+            <StatBox label="Starting Balance" value={`${practice.currency} ${Number(practice.starting_balance).toLocaleString()}`} />
+            <StatBox label="Status" value={practice.status.toUpperCase()} />
+            <StatBox label="Trading" value={practice.execution_enabled ? "Enabled" : "Market feed pending"} />
           </div>
         )}
 
         <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
-          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>
-            Exness Partner Link
-          </p>
-          <a
-            href={mt5.exness_ib_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan-700 hover:text-cyan-800 font-mono text-sm break-all"
-          >
-            {mt5.exness_ib_link}
+          <p className="text-sm font-semibold">Ready for a real Exness account?</p>
+          <a href="https://one.exnessonelink.com/a/ut6xqvmg34" target="_blank" rel="noopener noreferrer"
+            className="text-cyan-700 hover:text-cyan-800 font-semibold text-sm">
+            Open Exness through SAGZFX →
           </a>
           <p className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-            Open a live Exness account via this link to keep your learning progress and unlock live-market tools.
+            Exness registration is separate from the SAGZFX virtual practice account.
           </p>
         </div>
       </div>
