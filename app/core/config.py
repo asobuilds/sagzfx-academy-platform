@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     FLUTTERWAVE_SECRET_KEY: str | None = None
     DEFAULT_CURRENCY: str = "NGN"
 
+    # Browser origins allowed to call the API in production.
+    CORS_ORIGINS: str = "http://localhost:3000"
+
     # Exness
     EXNESS_IB_LINK: str = "https://one.exness-track.com/a/sagzfx"
     MT5_BRIDGE_MODE: str = "demo_sandbox"

@@ -35,6 +35,8 @@ export default function DashboardPage() {
   const [mt5, setMt5] = useState<MT5Status | null>(null);
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [provisioning, setProvisioning] = useState(false);
+  const [newDemo, setNewDemo] = useState<{ login: string; password: string; investor_password: string; server: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,6 +67,20 @@ export default function DashboardPage() {
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function provisionMt5() {
+    setProvisioning(true);
+    setError(null);
+    try {
+      const credentials = await endpoints.provisionMt5();
+      setNewDemo(credentials);
+      setMt5(await endpoints.mt5Status());
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Unable to provision MT5 demo.");
+    } finally {
+      setProvisioning(false);
+    }
+  }
 
   // ─── Loading state ─────────────────────────────────────
   if (loading) {
@@ -170,7 +186,7 @@ export default function DashboardPage() {
                 Exness Demo Sandbox
               </h2>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Risk-free environment linked to live market feeds
+                Free MT5 demo for every account type — no paid plan required
               </p>
             </div>
           </div>
@@ -183,14 +199,26 @@ export default function DashboardPage() {
               </span>
             </div>
           ) : (
-            <Link
-              href="/dashboard#mt5"
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift"
+            <button
+              type="button"
+              onClick={provisionMt5}
+              disabled={provisioning}
+              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift disabled:opacity-50"
             >
-              Provision Demo
-            </Link>
+              {provisioning ? "Provisioning…" : "Provision Free Demo"}
+            </button>
           )}
         </div>
+
+        {newDemo && (
+          <div className="rounded-2xl p-5 border space-y-2">
+            <p className="font-semibold">Save these MT5 demo credentials now. The password is shown only once.</p>
+            <p className="font-mono text-sm">Login: {newDemo.login}</p>
+            <p className="font-mono text-sm">Password: {newDemo.password}</p>
+            <p className="font-mono text-sm">Investor password: {newDemo.investor_password}</p>
+            <p className="font-mono text-sm">Server: {newDemo.server}</p>
+          </div>
+        )}
 
         <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
           <p className="text-xs uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>
