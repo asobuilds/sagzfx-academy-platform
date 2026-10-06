@@ -6,13 +6,12 @@ Endpoints:
     POST /community/announce          -> admin-only: post to Discord webhook
 """
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin
 from app.core.config import settings
 from app.core.database import get_db
-from app.models import PremiumPurchase, User
+from app.models import User
 from app.schemas.community import (
     AnnounceRequest,
     AnnounceResponse,
@@ -26,22 +25,11 @@ from app.services.community import (
 router = APIRouter(prefix="/community", tags=["community"])
 
 
-async def _resolve_tier(user: User, db: AsyncSession) -> str:
-    """Determine the caller's access tier from DB state."""
-    stmt = (
-        select(PremiumPurchase)
-        .where(
-            PremiumPurchase.user_id == user.user_id,
-            PremiumPurchase.subscription_status == "active",
-        )
-        .limit(1)
-    )
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none() is not None:
-        return "premium"
-    if user.has_paid_tuition:
-        return "tuition"
-    return "registered"
+def _mentorship_channel(user: User) -> str:
+    """Return the live mentorship channel only to paid lifetime members."""
+    if not user.mentorship_lifetime:
+        return "registered"
+    return user.learning_plan
 
 
 @router.get("/realtime-config", response_model=RealtimeConfig)
@@ -51,9 +39,9 @@ async def realtime_config(
 ):
     """
     Return the config the frontend uses to subscribe to Supabase Realtime.
-    Tier is resolved from DB state on every call — no caching.
+    Lifetime mentorship remains available after the one-month class expires.
     """
-    tier = await _resolve_tier(user, db)
+    tier = _mentorship_channel(user)
 
     return RealtimeConfig(
         supabase_url=settings.SUPABASE_URL or None,
