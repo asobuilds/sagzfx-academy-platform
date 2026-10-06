@@ -20,6 +20,10 @@ class UserPublic(BaseModel):
     email: EmailStr
     role: str
     has_paid_tuition: bool
+    learning_plan: str = "registered"
+    class_started_at: datetime | None = None
+    class_expires_at: datetime | None = None
+    mentorship_lifetime: bool = False
     exness_demo_account_number: str | None = None
     created_at: datetime
 
