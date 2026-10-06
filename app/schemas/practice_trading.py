@@ -1,5 +1,5 @@
 """API schemas for SAGZFX Practice Trading."""
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -37,7 +37,7 @@ class PracticeOrderOut(BaseModel):
     fill_price: Decimal | None
     close_price: Decimal | None
     realized_pnl: Decimal | None
-    quote_date: datetime | None
+    quote_date: date | None
     opened_at: datetime | None
     closed_at: datetime | None
     created_at: datetime
