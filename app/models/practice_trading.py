@@ -1,9 +1,9 @@
 """Persistent virtual-money models for SAGZFX Practice Trading."""
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, func, text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,6 +21,10 @@ class PracticeAccount(Base):
     reset_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    @property
+    def execution_enabled(self) -> bool:
+        return self.status == "active"
+
     orders: Mapped[list["PracticeOrder"]] = relationship("PracticeOrder", back_populates="account", cascade="all, delete-orphan")
     ledger_entries: Mapped[list["PracticeLedgerEntry"]] = relationship("PracticeLedgerEntry", back_populates="account", cascade="all, delete-orphan")
 
@@ -38,6 +42,9 @@ class PracticeOrder(Base):
     take_profit: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'pending'"))
     fill_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    close_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    realized_pnl: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
+    quote_date: Mapped[date | None] = mapped_column(Date)
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

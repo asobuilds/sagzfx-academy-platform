@@ -3,6 +3,10 @@
 Account/history access is live. Trade execution is intentionally absent until
 an approved live market-data adapter is configured.
 """
+from datetime import datetime, timezone
+from decimal import Decimal
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -11,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models import PracticeAccount, PracticeLedgerEntry, PracticeOrder, User
-from app.schemas.practice_trading import PracticeAccountOut, PracticeLedgerEntryOut, PracticeOrderOut
+from app.schemas.practice_trading import PracticeAccountOut, PracticeLedgerEntryOut, PracticeOrderCreate, PracticeOrderOut
+from app.services.practice_trading import unrealized_pnl
 from app.services.reference_fx import fetch_reference_quote
 
 router = APIRouter(prefix="/practice-trading", tags=["practice-trading"])
@@ -51,8 +56,8 @@ async def create_account(
             PracticeLedgerEntry(
                 account_id=created_account_id,
                 entry_type="account_opened",
-                amount=10000,
-                balance_after=10000,
+                amount=Decimal("10000.00"),
+                balance_after=Decimal("10000.00"),
                 note="Initial SAGZFX virtual practice balance",
             )
         )
@@ -107,6 +112,117 @@ async def list_ledger_entries(
         .order_by(PracticeLedgerEntry.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+EXECUTABLE_USD_QUOTE_PAIRS = {"EURUSD", "GBPUSD", "AUDUSD"}
+
+
+@router.post("/orders", response_model=PracticeOrderOut)
+async def open_market_order(
+    payload: PracticeOrderCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    symbol = payload.symbol.upper().replace("/", "")
+    side = payload.side.lower()
+    if symbol not in EXECUTABLE_USD_QUOTE_PAIRS:
+        raise HTTPException(status_code=400, detail="Practice execution currently supports EURUSD, GBPUSD and AUDUSD")
+    if side not in {"buy", "sell"}:
+        raise HTTPException(status_code=400, detail="side must be buy or sell")
+
+    account_result = await db.execute(
+        select(PracticeAccount)
+        .where(PracticeAccount.user_id == user.user_id)
+        .with_for_update()
+    )
+    account = account_result.scalar_one_or_none()
+    if account is None:
+        raise HTTPException(status_code=404, detail="Practice account not activated")
+    if account.status != "active":
+        raise HTTPException(status_code=409, detail="Practice account is not active")
+
+    try:
+        quote = fetch_reference_quote(symbol)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    order = PracticeOrder(
+        account_id=account.account_id,
+        symbol=symbol,
+        side=side,
+        order_type="market",
+        lot_size=payload.lot_size,
+        requested_price=quote.rate,
+        fill_price=quote.rate,
+        quote_date=quote.rate_date,
+        status="open",
+        opened_at=datetime.now(timezone.utc),
+    )
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+@router.post("/orders/{order_id}/close", response_model=PracticeOrderOut)
+async def close_market_order(
+    order_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account_result = await db.execute(
+        select(PracticeAccount)
+        .where(PracticeAccount.user_id == user.user_id)
+        .with_for_update()
+    )
+    account = account_result.scalar_one_or_none()
+    if account is None:
+        raise HTTPException(status_code=404, detail="Practice account not activated")
+
+    order_result = await db.execute(
+        select(PracticeOrder)
+        .where(
+            PracticeOrder.order_id == order_id,
+            PracticeOrder.account_id == account.account_id,
+        )
+        .with_for_update()
+    )
+    order = order_result.scalar_one_or_none()
+    if order is None:
+        raise HTTPException(status_code=404, detail="Practice order not found")
+    if order.status != "open" or order.fill_price is None:
+        raise HTTPException(status_code=409, detail="Practice order is not open")
+
+    try:
+        quote = fetch_reference_quote(order.symbol)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    pnl = unrealized_pnl(order.side, order.lot_size, order.fill_price, quote.rate).quantize(Decimal("0.01"))
+    new_balance = account.balance + pnl
+    if new_balance < 0:
+        raise HTTPException(status_code=409, detail="Closing this position would exceed the virtual account balance")
+
+    account.balance = new_balance
+    order.close_price = quote.rate
+    order.realized_pnl = pnl
+    order.quote_date = quote.rate_date
+    order.status = "closed"
+    order.closed_at = datetime.now(timezone.utc)
+    db.add(
+        PracticeLedgerEntry(
+            account_id=account.account_id,
+            entry_type="realized_pnl",
+            amount=pnl,
+            balance_after=new_balance,
+            reference_type="practice_order",
+            reference_id=order.order_id,
+            note=f"{order.symbol} {order.side} realized P/L",
+        )
+    )
+    await db.commit()
+    await db.refresh(order)
+    return order
 
 
 @router.get("/orders", response_model=list[PracticeOrderOut])

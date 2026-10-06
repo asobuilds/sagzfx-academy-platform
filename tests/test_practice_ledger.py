@@ -16,11 +16,12 @@ class PracticeLedgerContractTests(unittest.TestCase):
         self.assertNotIn("UPDATE practice_ledger_entries", sql)
         self.assertNotIn("DELETE FROM practice_ledger_entries", sql)
 
-    def test_model_exposes_ledger_without_enabling_execution(self):
+    def test_model_exposes_ledger_and_virtual_execution(self):
         model = (ROOT / "app" / "models" / "practice_trading.py").read_text()
         api = (ROOT / "app" / "api" / "v1" / "practice_trading.py").read_text()
         self.assertIn("class PracticeLedgerEntry", model)
-        self.assertNotIn('@router.post("/orders"', api)
+        self.assertIn('@router.post("/orders"', api)
+        self.assertIn('entry_type="realized_pnl"', api)
         self.assertNotIn('@router.post("/trade"', api)
         self.assertNotIn('@router.post("/execute"', api)
 

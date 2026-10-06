@@ -1,108 +1,58 @@
-# Developer Agent System Blueprint: SAGZFX ACADEMY
+# SAGZFX ACADEMY - Agent Implementation Guide
 
-This document serves as the implementation source of truth, organizing project objectives, data definitions extracted from the official flyer assets, and engineering phases.
+This file is the engineering source of truth for agents working on this repository. Read `SESSION_NOTES.md` first for the latest handoff.
 
-## 🎯 Strategic Project Aims
-1. **Physical to Digital Parity:** Bridge the Abuja physical site (Shop 5 Aib Plaza, Keffi, Abuja Express Way) to a scalable mobile network environment.
-2. **Zero-Overhead Infrastructure Operations:** Secure high-performing video distribution pipelines and low-latency group messaging spaces without incurring massive monthly cloud costs.
-3. **Clean UX Monetization Mapping:** Support structural differentiation between base tuition profiles and secondary purchases for proprietary indicators or trade strategies.
+## Non-negotiable rules
 
----
+1. Do not present mocks, random credentials, placeholders or test-only behavior as production-complete.
+2. Work in a narrow branch; run applicable CI before merge.
+3. Apply required Neon migrations before deploying code that depends on them.
+4. Confirm the exact merged commit is live on Render before calling a change production-live.
+5. Never commit secrets or echo production credentials.
+6. Browser auth uses Secure HttpOnly cookies; do not restore JWT localStorage auth.
+7. Practice Trading is free to every authenticated user, regardless of learning plan.
+8. Practice trades are virtual money only. Never route an order to Exness or claim the reference feed is broker execution data.
+9. No Co-authored-by: Codex trailers.
 
-## 📊 Extracted Flyer Metadata & Identity Coordinates
+## Current architecture
 
-### Corporate Identity & Physical Footprint
-- **Academy Entity:** SAGZFX ACADEMY (RC: 8064497)
-- **Motto / Slogan:** Profits Forever | Learn, Trade, Grow
-- **Abuja Physical Campus Address:** Shop 5 Aib Plaza, Keffi, Abuja Express Way
-- **Primary Contacts:** +234 9152100856, +234 8064963367
-- **Digital Handles:** @sagzfxacademy (Telegram, Instagram, Facebook)
+- FastAPI backend under `app/`
+- Next.js frontend under `frontend/`
+- Neon PostgreSQL
+- Render backend + frontend
+- Paystack live checkout/webhook
+- Frankfurter free educational FX reference adapter
+- GitHub Actions backend/frontend CI
 
-### Operational Parameters
-- **Core Instruments:** Forex (Currency Pairs), Synthetics (Indices), Cryptocurrency, Stocks, and Commodities.
-- **Standard On-Campus Session Rotations:**
-  - Morning Shift: 11:00 AM – 1:30 PM
-  - Afternoon Shift: 1:30 PM – 3:30 PM
+## Business rules
 
----
+Plans:
+- registered: free
+- beginner: NGN 150,000
+- advanced: NGN 250,000
+- masters: NGN 500,000
 
-## 🎓 Master Curriculum Database Seeding Script Matrix
+Paid class duration is one month. Paid enrollment enables lifetime mentorship. During the active month, the learner may open modules allowed by the plan. After expiry, only modules successfully opened during the active period remain accessible.
 
-### LEVEL 1: BEGINNER TRACK
-- `L1-MOD1`: Introduction to Forex
-- `L1-MOD2`: Currency pairs & market sessions
-- `L1-MOD3`: Pips, lots, spreads & leverage
-- `L1-MOD4`: Buy/Sell & order types
-- `L1-MOD5`: Trading platforms (MT4/MT5)
-- `L1-MOD6`: Candlestick basics
-- `L1-MOD7`: Support & Resistance
-- `L1-MOD8`: Trendlines & market direction
-- `L1-MOD9`: Stop Loss & Take Profit
-- `L1-MOD10`: Basic Risk Management
-- `L1-MOD11`: Trading Psychology
-- `L1-MOD12`: How to read a simple chart
+## Practice Trading contract
 
-### LEVEL 2: MARKET STRUCTURE TRACK
-- `L2-MOD1`: Higher Highs, Higher Lows, LH & LL
-- `L2-MOD2`: Break of Structure (BOS)
-- `L2-MOD3`: Change of Character (CHOCH)
-- `L2-MOD4`: Supply & Demand
-- `L2-MOD5`: Liquidity & liquidity sweeps
-- `L2-MOD6`: Fair Value Gaps (FVG)
-- `L2-MOD7`: Order Blocks
-- `L2-MOD8`: Premium & Discount
-- `L2-MOD9`: Multi-Timeframe Analysis
-- `L2-MOD10`: Entry Models
-- `L2-MOD11`: Risk-to-Reward
-- `L2-MOD12`: Trade Management
-- `L2-MOD13`: Trading Journal & Backtesting
-- `L2-MOD14`: Fundamental Analysis (News & Economic Calendar)
+Every authenticated account can activate a USD 10,000 virtual account.
 
-### LEVEL 3: ADVANCED STRATEGY TRACK
-- `L3-MOD1`: Advanced Market Structure
-- `L3-MOD2`: Institutional Order Flow
-- `L3-MOD3`: Smart Money Concepts (SMC)
-- `L3-MOD4`: Liquidity Engineering
-- `L3-MOD5`: Inducement
-- `L3-MOD6`: Displacement
-- `L3-MOD7`: Mitigation & Re-entries
-- `L3-MOD8`: Advanced Order Blocks
-- `L3-MOD9`: FVG + Liquidity Confluence
-- `L3-MOD10`: Session & Kill-Zone Analysis
-- `L3-MOD11`: Advanced Multi-Timeframe Setups
-- `L3-MOD12`: Correlation Analysis
-- `L3-MOD13`: Advanced Risk Management
-- `L3-MOD14`: Building a Profitable Trading System
-- `L3-MOD15`: Strategy Backtesting & Optimization
-- `L3-MOD16`: Trading Psychology at Professional Level
-- `L3-MOD17`: Prop-Firm Risk Management
-- `L3-MOD18`: Advanced Trade Execution
-- `L3-MOD19`: Creating a Personal Trading Plan
-- `L3-MOD20`: Becoming a Consistent/Professional Trader
+Execution model:
+- EURUSD, GBPUSD and AUDUSD may be virtually opened/closed using the educational reference rate.
+- USDJPY, USDCHF and USDCAD are reference-display only until account-currency conversion is implemented.
+- opening an order persists symbol, side, lot size, reference fill and provider date.
+- closing locks account/order rows, calculates P/L using Decimal arithmetic, updates the virtual balance and appends a realized_pnl ledger entry in one transaction.
+- reset locks the account row, restores starting balance and records the actual balance delta.
+- ledger/order history is scoped to the authenticated user's account.
+- no real broker execution exists.
+- no always-on SL/TP claim exists on free sleeping infrastructure.
 
-### LEVEL 4: FINAL MASTERCLASS (CAPSTONE)
-- `L4-MOD1`: Putting Everything Together (Top-down analysis, Market bias, Liquidity identification, Entry confirmation, SL placement, TP targeting, Risk calculation, Trade management, Journaling, Reviewing and improving the strategy)
+## Release status
 
----
+Production is live through PR #14 / commit `b81b18082193759d025df20c99ec4c017558bdaf`.
+The current completion branch is `feature/complete-practice-trading`. It introduces migration 004 and the complete virtual trading workspace. Migration 004 must be approved/applied to production Neon before this branch can be merged/deployed.
 
-## 🛠️ Step-by-Step Implementation Roadmap
+## After Practice Trading
 
-### Phase 1: Database Construction & User Schema Definition
-- Build out PostgreSQL schemas enforcing data field separations.
-- Create explicit binary flags (`has_paid_tuition: true/false`) and automated relational maps for subscription array logs (`active_premium_strategies: []`).
-
-### Phase 2: Secure Core LMS & Embedded Free Video Pipeline
-- Build dynamic client views displaying custom video controls that block source URI inspection.
-- Build the server-side module to track video watch progress percentages and trigger the next chapter unlock hooks.
-
-### Phase 3: Web-Sockets Real-time Forum Spaces
-- Initialize channel partitions matching specific target levels (e.g., `#beginner-chat`, `#smc-setups`, `#alumni-lounge`).
-- Include optimized payload delivery to support instantaneous chart image distribution across student networks.
-
-### Phase 4: Simulated MT5 Demo Bridge Pipeline
-- Hook live pricing streams into UI data nodes to feed real-time client tickers.
-- Model standard mock executions (Market, Limit, Stop orders) locally inside the sandboxed student simulator framework.
-
-### Phase 5: Production Rollout, Testing, and Invoicing
-- Connect Paystack/Flutterwave subscription webhook endpoints to track recurring event checks.
-- Build administrative UI panels to handle fast, localized overrides for students executing direct physical bank transfers inside the Abuja office.
+Do not silently expand scope. The next known platform gaps include verifying real mentorship infrastructure, payment-reference-specific success verification, client decision on plan downgrade/renewal behavior, video URL/content audit, frontend dependency-security PR, and remaining auth hardening.

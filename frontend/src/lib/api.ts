@@ -214,6 +214,48 @@ export const endpoints = {
       created_at: string;
     }>>("/api/v1/practice-trading/ledger"),
 
+  practiceQuote: (symbol: string) =>
+    api<{
+      symbol: string;
+      rate: string;
+      rate_date: string;
+      provider: string;
+      price_type: string;
+      realtime: boolean;
+      execution_enabled: boolean;
+      disclaimer: string;
+    }>(`/api/v1/practice-trading/quote/${symbol}`),
+
+  openPracticeOrder: (symbol: string, side: "buy" | "sell", lot_size: string) =>
+    api<{
+      order_id: string;
+      symbol: string;
+      side: string;
+      order_type: string;
+      lot_size: string;
+      status: string;
+      fill_price: string | null;
+      close_price: string | null;
+      realized_pnl: string | null;
+      quote_date: string | null;
+      created_at: string;
+    }>("/api/v1/practice-trading/orders", { method: "POST", body: { symbol, side, lot_size } }),
+
+  closePracticeOrder: (orderId: string) =>
+    api<{
+      order_id: string;
+      symbol: string;
+      side: string;
+      order_type: string;
+      lot_size: string;
+      status: string;
+      fill_price: string | null;
+      close_price: string | null;
+      realized_pnl: string | null;
+      quote_date: string | null;
+      created_at: string;
+    }>(`/api/v1/practice-trading/orders/${orderId}/close`, { method: "POST" }),
+
   practiceOrders: () =>
     api<Array<{
       order_id: string;
@@ -223,6 +265,9 @@ export const endpoints = {
       lot_size: string;
       status: string;
       fill_price: string | null;
+      close_price: string | null;
+      realized_pnl: string | null;
+      quote_date: string | null;
       created_at: string;
     }>>("/api/v1/practice-trading/orders"),
 

@@ -186,14 +186,15 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {practice && (
+        {practice && (<>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatBox label="Virtual Balance" value={`${practice.currency} ${Number(practice.balance).toLocaleString()}`} />
             <StatBox label="Starting Balance" value={`${practice.currency} ${Number(practice.starting_balance).toLocaleString()}`} />
             <StatBox label="Status" value={practice.status.toUpperCase()} />
             <StatBox label="Trading" value={practice.execution_enabled ? "Enabled" : "Market feed pending"} />
           </div>
-        )}
+          <Link href="/practice" className="inline-block px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift">Open Practice Trading Workspace →</Link>
+        </>)}
 
         <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
           <p className="text-sm font-semibold">Ready for a real Exness account?</p>
