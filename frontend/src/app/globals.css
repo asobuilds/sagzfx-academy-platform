@@ -2,19 +2,19 @@
 
 /* ─── SAGZFX ACADEMY - Design System ─────────────────────────────
    Colors extracted from the client's physical flyer.
-   Dark navy base + brand blue + signal green + accent cyan + gold.
+   Light-first neutral base + brand blue + signal green + accent cyan + gold.
    ──────────────────────────────────────────────────────────── */
 
 :root {
   /* Base layers */
-  --bg-base: #050B14;
-  --bg-elevated: #0A1424;
-  --bg-glass: rgba(15, 30, 51, 0.55);
-  --bg-glass-strong: rgba(15, 30, 51, 0.85);
+  --bg-base: #F8FAFC;
+  --bg-elevated: #FFFFFF;
+  --bg-glass: rgba(255, 255, 255, 0.78);
+  --bg-glass-strong: rgba(255, 255, 255, 0.94);
 
   /* Border */
-  --border-subtle: rgba(80, 130, 200, 0.15);
-  --border-strong: rgba(96, 165, 250, 0.35);
+  --border-subtle: rgba(15, 23, 42, 0.10);
+  --border-strong: rgba(37, 99, 235, 0.28);
 
   /* Brand palette (from flyer) */
   --brand-blue: #1E40AF;
@@ -27,8 +27,8 @@
   --gold: #F59E0B;
 
   /* Text */
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
   --text-muted: #64748B;
 }
 
@@ -49,9 +49,9 @@ html, body {
 
 body {
   background-image:
-    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
-    radial-gradient(circle at 80% 100%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(30, 64, 175, 0.06) 0%, transparent 60%);
+    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 42%),
+    radial-gradient(circle at 80% 100%, rgba(34, 197, 94, 0.05) 0%, transparent 48%),
+    linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 55%, #F1F5F9 100%);
   background-attachment: fixed;
 }
 
@@ -83,7 +83,7 @@ body {
   transform: translateY(-4px);
   border-color: var(--border-strong);
   box-shadow:
-    0 20px 40px -12px rgba(14, 165, 233, 0.25),
+    0 20px 40px -12px rgba(15, 23, 42, 0.14),
     0 0 0 1px rgba(96, 165, 250, 0.2);
 }
 
@@ -202,3 +202,16 @@ body {
 .animate-float   { animation: float-slow 4s ease-in-out infinite }
 .animate-glow    { animation: pulse-glow 3s ease-in-out infinite }
 .animate-ticker  { animation: ticker-up 0.4s ease-out both }
+
+
+/* ─── Light-surface compatibility ─────────────────────────── */
+
+.bg-black\/30 { background-color: rgba(248, 250, 252, 0.92) !important; }
+.bg-black\/40 { background-color: rgba(226, 232, 240, 0.9) !important; }
+
+input, textarea, select {
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+}
+
+input::placeholder, textarea::placeholder { color: #94A3B8; }

@@ -113,14 +113,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="w-full py-3.5 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Creating account..." : "Create free account"}
           </button>
 
           <p className="text-center text-sm pt-2" style={{ color: "var(--text-secondary)" }}>
             Already have an account?{" "}
-            <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-medium">
+            <Link href="/login" className="text-cyan-700 hover:text-cyan-800 font-medium">
               Sign in
             </Link>
           </p>

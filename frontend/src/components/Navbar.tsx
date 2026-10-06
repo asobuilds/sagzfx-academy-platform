@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { endpoints, getToken, clearTokens, type User } from "@/lib/api";
 
 export default function Navbar() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(getToken()));
 
   useEffect(() => {
-    if (!getToken()) {
-      setLoading(false);
-      return;
-    }
+    if (!getToken()) return;
     endpoints
       .me()
       .then(setUser)
@@ -26,16 +25,17 @@ export default function Navbar() {
   const logout = () => {
     clearTokens();
     setUser(null);
-    window.location.href = "/";
+    router.push("/");
+    router.refresh();
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b" style={{ borderColor: "var(--border-subtle)", background: "rgba(5, 11, 20, 0.75)", backdropFilter: "blur(24px) saturate(160%)", WebkitBackdropFilter: "blur(24px) saturate(160%)" }}>
+    <nav className="sticky top-0 z-50 border-b" style={{ borderColor: "var(--border-subtle)", background: "rgba(255, 255, 255, 0.88)", backdropFilter: "blur(24px) saturate(160%)", WebkitBackdropFilter: "blur(24px) saturate(160%)" }}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
 
         {/* Brand */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center font-bold text-white shadow-lg shadow-blue-900/30 group-hover:animate-glow transition">
+          <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 group-hover:animate-glow transition">
             SG
           </div>
           <div className="leading-tight hidden sm:block">
@@ -95,7 +95,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/register"
-                className="px-4 py-2 rounded-lg brand-gradient text-white text-sm font-semibold hover-lift shadow-lg shadow-blue-900/40"
+                className="px-4 py-2 rounded-lg brand-gradient text-white text-sm font-semibold hover-lift shadow-lg shadow-blue-500/20"
               >
                 Get Started
               </Link>
