@@ -28,3 +28,5 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Access policy tests
         run: python -m unittest discover -s tests -v
+        env:
+          DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/sagzfx_ci
