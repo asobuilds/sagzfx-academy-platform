@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models import PracticeAccount, PracticeOrder, User
+from app.models import PracticeAccount, PracticeLedgerEntry, PracticeOrder, User
 from app.schemas.practice_trading import PracticeAccountOut, PracticeOrderOut
 from app.services.reference_fx import fetch_reference_quote
 
@@ -39,15 +39,50 @@ async def create_account(
 ):
     # Database-level ON CONFLICT makes simultaneous first-use requests
     # idempotent; the unique user_id constraint remains the authority.
-    await db.execute(
+    result = await db.execute(
         insert(PracticeAccount)
         .values(user_id=user.user_id)
         .on_conflict_do_nothing(index_elements=[PracticeAccount.user_id])
+        .returning(PracticeAccount.account_id)
     )
+    created_account_id = result.scalar_one_or_none()
+    if created_account_id is not None:
+        db.add(
+            PracticeLedgerEntry(
+                account_id=created_account_id,
+                entry_type="account_opened",
+                amount=10000,
+                balance_after=10000,
+                note="Initial SAGZFX virtual practice balance",
+            )
+        )
     await db.commit()
     account = await _account_for_user(db, user)
     if account is None:  # Defensive: successful insert/select must yield one.
         raise RuntimeError("Practice account creation did not persist")
+    return account
+
+@router.post("/account/reset", response_model=PracticeAccountOut)
+async def reset_account(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await _account_for_user(db, user)
+    if account is None:
+        raise HTTPException(status_code=404, detail="Practice account not activated")
+    account.balance = account.starting_balance
+    account.reset_count += 1
+    db.add(
+        PracticeLedgerEntry(
+            account_id=account.account_id,
+            entry_type="reset",
+            amount=0,
+            balance_after=account.starting_balance,
+            note=f"Practice account reset #{account.reset_count}",
+        )
+    )
+    await db.commit()
+    await db.refresh(account)
     return account
 
 
