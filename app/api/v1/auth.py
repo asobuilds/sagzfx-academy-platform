@@ -7,7 +7,7 @@ Endpoints:
     POST /auth/refresh    - exchange refresh token for new pair
     GET  /auth/me         - return the current user
 """
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,23 @@ from app.schemas.auth import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    cookie_options = {
+        "httponly": True,
+        "secure": True,
+        "samesite": "none",
+        "path": "/",
+    }
+    response.set_cookie("sagzfx_access", access_token, **cookie_options)
+    response.set_cookie("sagzfx_refresh", refresh_token, **cookie_options)
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("sagzfx_access", path="/", samesite="none", secure=True, httponly=True)
+    response.delete_cookie("sagzfx_refresh", path="/", samesite="none", secure=True, httponly=True)
+
 
 
 # ─── Register ────────────────────────────────────────────────
@@ -59,7 +76,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 #   - Form:  username=<email>&password=<pw>        (Swagger Authorize button)
 
 @router.post("/login", response_model=TokenPair)
-async def login(request: Request, db: AsyncSession = Depends(get_db)):
+async def login(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     email: str | None = None
     password: str | None = None
 
@@ -95,32 +112,43 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid email or password.",
         )
 
-    return TokenPair(
-        access_token=create_access_token(str(user.user_id)),
-        refresh_token=create_refresh_token(str(user.user_id)),
-    )
+    access_token = create_access_token(str(user.user_id))
+    refresh_token = create_refresh_token(str(user.user_id))
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
 # ─── Refresh ─────────────────────────────────────────────────
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+async def refresh(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    refresh_token = request.cookies.get("sagzfx_refresh")
+    if not refresh_token:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        refresh_token = body.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token required.")
     try:
-        claims = decode_token(payload.refresh_token)
+        claims = decode_token(refresh_token)
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid refresh token.")
-
     if claims.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Wrong token type.")
-
     user = await db.get(User, claims["sub"])
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
+    access_token = create_access_token(str(user.user_id))
+    new_refresh_token = create_refresh_token(str(user.user_id))
+    _set_auth_cookies(response, access_token, new_refresh_token)
+    return TokenPair(access_token=access_token, refresh_token=new_refresh_token)
 
-    return TokenPair(
-        access_token=create_access_token(str(user.user_id)),
-        refresh_token=create_refresh_token(str(user.user_id)),
-    )
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    _clear_auth_cookies(response)
 
 
 # ─── Me ──────────────────────────────────────────────────────
