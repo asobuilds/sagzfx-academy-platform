@@ -38,7 +38,7 @@ export default function LoginPage() {
 
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="inline-flex w-14 h-14 rounded-2xl brand-gradient items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-900/40">
+          <div className="inline-flex w-14 h-14 rounded-2xl brand-gradient items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-500/20">
             SG
           </div>
           <h1
@@ -96,14 +96,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="w-full py-3.5 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>
 
           <p className="text-center text-sm pt-2" style={{ color: "var(--text-secondary)" }}>
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-cyan-400 hover:text-cyan-300 font-medium">
+            <Link href="/register" className="text-cyan-700 hover:text-cyan-800 font-medium">
               Create one
             </Link>
           </p>
