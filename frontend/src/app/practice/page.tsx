@@ -6,7 +6,7 @@ type Ledger = Awaited<ReturnType<typeof endpoints.practiceLedger>>[number];
 type Account = NonNullable<Awaited<ReturnType<typeof endpoints.practiceAccount>>>;
 type Quote = Awaited<ReturnType<typeof endpoints.practiceQuote>>;
 export default function PracticePage() {
- const [account,setAccount]=useState<Account|null>(null),[orders,setOrders]=useState<Order[]>([]),[ledger,setLedger]=useState<Ledger[]>([]),[quote,setQuote]=useState<Quote|null>(null);
+ const [account,setAccount]=useState<Account|null>(null),[orders,setOrders]=useState<Order[]>([]),[ledger,setLedger]=useState<Ledger[]>([]),[quote,setQuote]=useState<Quote|null>(null),[history,setHistory]=useState<Array<{date:string;rate:number}>>([]);
  const [symbol,setSymbol]=useState("EURUSD"),[lot,setLot]=useState("0.10"),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
  async function refresh(){const [a,o,l]=await Promise.all([endpoints.practiceAccount(),endpoints.practiceOrders(),endpoints.practiceLedger()]);setAccount(a);setOrders(o);setLedger(l);}
  useEffect(()=>{void Promise.resolve().then(refresh).catch(()=>setError("Unable to load practice trading."));},[]);
@@ -41,19 +41,23 @@ export default function PracticePage() {
         </div>
       </div>
 
-      <div className="glass rounded-3xl p-6 space-y-5"><div className="flex flex-wrap gap-3 items-end">
-    <label className="space-y-1"><span className="text-xs">Pair</span><select value={symbol} onChange={e=>setSymbol(e.target.value)} className="block border rounded-lg p-3 bg-white"><option>EURUSD</option><option>GBPUSD</option><option>AUDUSD</option></select></label>
-    <label className="space-y-1"><span className="text-xs">Lot size</span><input value={lot} onChange={e=>setLot(e.target.value)} type="number" min="0.01" max="10" step="0.01" className="block border rounded-lg p-3 bg-white w-32"/></label>
-    <button disabled={busy} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"buy",lot))} className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold">Buy</button>
-    <button disabled={busy} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"sell",lot))} className="px-6 py-3 rounded-xl bg-red-600 text-white font-bold">Sell</button></div>
-    {quote&&<div className="rounded-xl border p-4"><b>{quote.symbol}: {quote.rate}</b> · {quote.provider} · rate date {quote.rate_date}<p className="text-xs mt-1" style={{color:"var(--text-muted)"}}>{quote.disclaimer}</p></div>}
-   </div>
    <TradeTable title="Open Positions" orders={open} closeOrder={id=>act(()=>endpoints.closePracticeOrder(id))} busy={busy}/>
    <TradeTable title="Trade History" orders={closed} busy={busy}/>
    <div className="glass rounded-3xl p-6 space-y-4"><div className="flex justify-between items-center"><h2 className="text-2xl font-bold">Account Ledger</h2><button disabled={busy} onClick={()=>act(endpoints.resetPracticeAccount)} className="px-4 py-2 rounded-xl border font-semibold">Reset to $10,000</button></div>
     <div className="space-y-2">{ledger.map(e=><div key={e.entry_id} className="flex flex-wrap justify-between gap-2 border-b py-2 text-sm"><span>{e.entry_type.replaceAll("_"," ")} · {e.note??""}</span><span>{(Number(e.amount)>=0?"+":"")+"$"+Number(e.amount).toFixed(2)+" → $"+Number(e.balance_after).toFixed(2)}</span></div>)}</div>
    </div></>}
  </section>;
+}
+function MarketChart({points}:{points:Array<{date:string;rate:number}>}) {
+ if(points.length<2) return <div className="h-80 flex items-center justify-center text-slate-500 border border-slate-800 rounded-xl">Reference chart unavailable</div>;
+ const width=900,height=360,pad=34,rates=points.map(p=>Number(p.rate)),min=Math.min(...rates),max=Math.max(...rates),span=max-min||1;
+ const xy=points.map((p,i)=>({x:pad+(i/(points.length-1))*(width-pad*2),y:pad+((max-Number(p.rate))/span)*(height-pad*2),...p}));
+ const path=xy.map((p,i)=>`${i?"L":"M"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" "),last=xy[xy.length-1];
+ return <div className="overflow-x-auto"><svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[620px] h-auto" role="img" aria-label="Historical daily reference rate chart">
+  {[0,1,2,3,4].map(i=><line key={i} x1={pad} x2={width-pad} y1={pad+i*(height-pad*2)/4} y2={pad+i*(height-pad*2)/4} stroke="#243041"/>)}
+  <path d={path} fill="none" stroke="#60a5fa" strokeWidth="2.5"/><line x1={pad} x2={width-pad} y1={last.y} y2={last.y} stroke="#64748b" strokeDasharray="5 5"/><circle cx={last.x} cy={last.y} r="4" fill="#93c5fd"/>
+  <text x={width-pad} y={Math.max(16,last.y-8)} textAnchor="end" fill="#cbd5e1" fontSize="13">{last.rate}</text><text x={pad} y={height-8} fill="#64748b" fontSize="12">{points[0].date}</text><text x={width-pad} y={height-8} textAnchor="end" fill="#64748b" fontSize="12">{last.date}</text>
+ </svg></div>;
 }
 function Stat({label,value}:{label:string,value:string}){return <div className="glass rounded-xl p-4"><div className="text-xs uppercase" style={{color:"var(--text-muted)"}}>{label}</div><div className="text-xl font-bold">{value}</div></div>}
 function TradeTable({title,orders,closeOrder,busy}:{title:string,orders:Order[],closeOrder?:(id:string)=>void,busy:boolean}){return <div className="glass rounded-3xl p-6 overflow-x-auto"><h2 className="text-2xl font-bold mb-4">{title}</h2>{orders.length===0?<p style={{color:"var(--text-muted)"}}>No {title.toLowerCase()} yet.</p>:<table className="w-full text-sm"><thead><tr className="text-left"><th>Pair</th><th>Side</th><th>Lot</th><th>Entry</th><th>Close</th><th>P/L</th><th>Reference date</th>{closeOrder&&<th/>}</tr></thead><tbody>{orders.map(o=><tr key={o.order_id} className="border-t"><td className="py-3">{o.symbol}</td><td>{o.side}</td><td>{o.lot_size}</td><td>{o.fill_price??"—"}</td><td>{o.close_price??"—"}</td><td>{o.realized_pnl==null?"—":"$"+Number(o.realized_pnl).toFixed(2)}</td><td>{o.quote_date??"—"}</td>{closeOrder&&<td><button disabled={busy} onClick={()=>closeOrder(o.order_id)} className="px-3 py-1 rounded-lg border font-semibold">Close</button></td>}</tr>)}</tbody></table>}</div>}
