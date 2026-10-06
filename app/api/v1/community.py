@@ -6,11 +6,9 @@ Endpoints:
     POST /community/announce          -> admin-only: post to Discord webhook
 """
 from fastapi import APIRouter, Depends
- from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin
 from app.core.config import settings
-from app.core.database import get_db
 from app.models import User
 from app.schemas.community import (
     AnnounceRequest,
@@ -35,7 +33,6 @@ def _mentorship_channel(user: User) -> str:
 @router.get("/realtime-config", response_model=RealtimeConfig)
 async def realtime_config(
     user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     """
     Return the config the frontend uses to subscribe to Supabase Realtime.
