@@ -5,6 +5,7 @@ an approved live market-data adapter is configured.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -35,12 +36,17 @@ async def create_account(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Database-level ON CONFLICT makes simultaneous first-use requests
+    # idempotent; the unique user_id constraint remains the authority.
+    await db.execute(
+        insert(PracticeAccount)
+        .values(user_id=user.user_id)
+        .on_conflict_do_nothing(index_elements=[PracticeAccount.user_id])
+    )
+    await db.commit()
     account = await _account_for_user(db, user)
-    if account is None:
-        account = PracticeAccount(user_id=user.user_id)
-        db.add(account)
-        await db.commit()
-        await db.refresh(account)
+    if account is None:  # Defensive: successful insert/select must yield one.
+        raise RuntimeError("Practice account creation did not persist")
     return account
 
 
