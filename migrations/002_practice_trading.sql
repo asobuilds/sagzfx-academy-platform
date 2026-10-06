@@ -1,6 +1,6 @@
 -- SAGZFX practice-trading foundation.
--- This creates virtual-money accounting only. No order is executable until
--- a licensed live market-data adapter is configured.
+-- Virtual-money accounting only. Execution stays disabled until a licensed
+-- live market-data adapter is configured.
 
 CREATE TABLE IF NOT EXISTS practice_accounts (
   account_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS practice_orders (
   symbol VARCHAR(30) NOT NULL,
   side VARCHAR(4) NOT NULL,
   order_type VARCHAR(10) NOT NULL,
-  quantity NUMERIC(18, 6) NOT NULL,
+  lot_size NUMERIC(10, 2) NOT NULL,
   requested_price NUMERIC(18, 8),
   stop_loss NUMERIC(18, 8),
   take_profit NUMERIC(18, 8),
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS practice_orders (
   CONSTRAINT practice_orders_side_check CHECK (side IN ('buy', 'sell')),
   CONSTRAINT practice_orders_type_check CHECK (order_type IN ('market', 'limit')),
   CONSTRAINT practice_orders_status_check CHECK (status IN ('pending', 'open', 'closed', 'cancelled', 'rejected')),
-  CONSTRAINT practice_orders_quantity_positive CHECK (quantity > 0)
+  CONSTRAINT practice_orders_lot_size_positive CHECK (lot_size > 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_practice_orders_account_status
