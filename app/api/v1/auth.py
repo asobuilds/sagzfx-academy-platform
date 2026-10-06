@@ -22,7 +22,6 @@ from app.core.security import (
 )
 from app.models import User
 from app.schemas.auth import (
-    RefreshRequest,
     RegisterRequest,
     TokenPair,
     UserPublic,
@@ -75,7 +74,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 #   - JSON:  {"email": "...", "password": "..."}   (frontend, curl)
 #   - Form:  username=<email>&password=<pw>        (Swagger Authorize button)
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login")
 async def login(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     email: str | None = None
     password: str | None = None
@@ -115,12 +114,16 @@ async def login(request: Request, response: Response, db: AsyncSession = Depends
     access_token = create_access_token(str(user.user_id))
     refresh_token = create_refresh_token(str(user.user_id))
     _set_auth_cookies(response, access_token, refresh_token)
+    # Browser JSON login receives only session state; tokens stay HttpOnly.
+    if "application/json" in content_type:
+        return {"authenticated": True}
+    # Preserve OAuth2/Swagger form-login compatibility for API tooling.
     return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
 # ─── Refresh ─────────────────────────────────────────────────
 
-@router.post("/refresh", response_model=TokenPair)
+@router.post("/refresh")
 async def refresh(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     refresh_token = request.cookies.get("sagzfx_refresh")
     if not refresh_token:
@@ -143,7 +146,7 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
     access_token = create_access_token(str(user.user_id))
     new_refresh_token = create_refresh_token(str(user.user_id))
     _set_auth_cookies(response, access_token, new_refresh_token)
-    return TokenPair(access_token=access_token, refresh_token=new_refresh_token)
+    return {"authenticated": True}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
