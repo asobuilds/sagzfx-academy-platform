@@ -169,13 +169,39 @@ export const endpoints = {
 
   module: (module_id: string) => api<ModuleSummary & { video_url_slug: string | null }>(`/api/v1/curriculum/modules/${module_id}`),
 
-  mt5Status: () => api<{ bound: boolean; login: string | null; server: string | null; exness_ib_link: string }>("/api/v1/mt5-demo/status"),
+  practiceAccount: () =>
+    api<{
+      account_id: string;
+      starting_balance: string;
+      balance: string;
+      currency: string;
+      status: string;
+      reset_count: number;
+      execution_enabled: boolean;
+    } | null>("/api/v1/practice-trading/account"),
 
-  provisionMt5: () =>
-    api<{ login: string; password: string; investor_password: string; server: string; exness_ib_link: string; created_at: string }>(
-      "/api/v1/mt5-demo/provision",
-      { method: "POST" },
-    ),
+  createPracticeAccount: () =>
+    api<{
+      account_id: string;
+      starting_balance: string;
+      balance: string;
+      currency: string;
+      status: string;
+      reset_count: number;
+      execution_enabled: boolean;
+    }>("/api/v1/practice-trading/account", { method: "POST" }),
+
+  practiceOrders: () =>
+    api<Array<{
+      order_id: string;
+      symbol: string;
+      side: string;
+      order_type: string;
+      lot_size: string;
+      status: string;
+      fill_price: string | null;
+      created_at: string;
+    }>>("/api/v1/practice-trading/orders"),
 
   realtimeConfig: () =>
     api<{ supabase_url: string | null; supabase_anon_key: string | null; channel: string; access_tier: string }>(
