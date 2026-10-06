@@ -39,8 +39,15 @@ class User(Base):
     has_paid_tuition: Mapped[bool] = mapped_column(
         Boolean, server_default=text("FALSE")
     )
-    tuition_activated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True)
+    tuition_activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    learning_plan: Mapped[str] = mapped_column(
+        String(30), nullable=False, server_default=text("'registered'")
+    )
+    class_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    class_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    mentorship_lifetime: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("FALSE")
     )
 
     exness_affiliate_id: Mapped[str | None] = mapped_column(String(50))
@@ -58,11 +65,5 @@ class User(Base):
     )
 
     def access_tier(self) -> str:
-        """Returns 'registered' | 'tuition' | 'premium'."""
-        if self.purchases and any(
-            p.subscription_status == "active" for p in self.purchases
-        ):
-            return "premium"
-        if self.has_paid_tuition:
-            return "tuition"
-        return "registered"
+        """Return the paid learning plan used by curriculum authorization."""
+        return self.learning_plan
