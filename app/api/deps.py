@@ -3,7 +3,7 @@ SAGZFX ACADEMY - Shared FastAPI dependencies.
 """
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,12 +22,16 @@ _CREDS_EXC = HTTPException(
 
 async def get_current_user(
     token: str | None = Depends(oauth2_scheme),
+    access_cookie: str | None = Cookie(default=None, alias="sagzfx_access"),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    if not token:
+    # Prefer the HttpOnly session cookie. Bearer remains supported for
+    # Swagger and non-browser API clients during the migration.
+    credential = access_cookie or token
+    if not credential:
         raise _CREDS_EXC
     try:
-        payload = decode_token(token)
+        payload = decode_token(credential)
     except ValueError:
         raise _CREDS_EXC
 
