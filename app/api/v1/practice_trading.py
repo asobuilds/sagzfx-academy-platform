@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models import PracticeAccount, PracticeLedgerEntry, PracticeOrder, User
-from app.schemas.practice_trading import PracticeAccountOut, PracticeOrderOut
+from app.schemas.practice_trading import PracticeAccountOut, PracticeLedgerEntryOut, PracticeOrderOut
 from app.services.reference_fx import fetch_reference_quote
 
 router = APIRouter(prefix="/practice-trading", tags=["practice-trading"])
@@ -84,6 +84,22 @@ async def reset_account(
     await db.commit()
     await db.refresh(account)
     return account
+
+
+@router.get("/ledger", response_model=list[PracticeLedgerEntryOut])
+async def list_ledger_entries(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await _account_for_user(db, user)
+    if account is None:
+        return []
+    result = await db.execute(
+        select(PracticeLedgerEntry)
+        .where(PracticeLedgerEntry.account_id == account.account_id)
+        .order_by(PracticeLedgerEntry.created_at.desc())
+    )
+    return list(result.scalars().all())
 
 
 @router.get("/orders", response_model=list[PracticeOrderOut])
