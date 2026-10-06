@@ -96,17 +96,19 @@ class LifetimeMentorshipTests(unittest.TestCase):
         self.assertEqual(realtime_channel_for_tier("masters"), "sagzfx:masters")
 
 
-class Mt5AccessContractTests(unittest.TestCase):
-    def test_mt5_is_not_part_of_paid_curriculum_policy(self):
-        # Product contract: every authenticated account can use MT5 demo.
-        # The MT5 endpoint depends only on get_current_user and never calls
-        # plan_allows_tier/module_is_accessible.
+class PracticeTradingAccessContractTests(unittest.TestCase):
+    def test_fake_mt5_router_is_not_registered(self):
+        source = ( __import__("pathlib").Path(__file__).resolve().parents[1] / "app" / "main.py").read_text()
+        self.assertNotIn("mt5_demo_router", source)
+        self.assertNotIn('include_router(mt5_demo', source)
+
+    def test_practice_trading_remains_authenticated_not_paid_plan_gated(self):
         import inspect
-        from app.api.v1.mt5_demo import provision_endpoint
-        source = inspect.getsource(provision_endpoint)
+        from app.api.v1.practice_trading import create_account
+        source = inspect.getsource(create_account)
+        self.assertIn("get_current_user", source)
         self.assertNotIn("plan_allows_tier", source)
         self.assertNotIn("learning_plan", source)
-        self.assertNotIn("mentorship_lifetime", source)
 
 
 if __name__ == "__main__":
