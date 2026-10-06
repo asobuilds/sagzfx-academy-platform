@@ -14,10 +14,11 @@ class PracticeTradingApiContractTests(unittest.TestCase):
             source = inspect.getsource(endpoint)
             self.assertIn("get_current_user", source)
 
-    def test_no_trade_execution_endpoint_exists_before_market_data(self):
+    def test_virtual_trade_execution_uses_reference_adapter(self):
         source = inspect.getsource(practice_trading)
-        self.assertNotIn('@router.post("/orders"', source)
-        self.assertNotIn('@router.post("/trade"', source)
+        self.assertIn('@router.post("/orders"', source)
+        self.assertIn("fetch_reference_quote", source)
+        self.assertIn("EXECUTABLE_USD_QUOTE_PAIRS", source)
         self.assertNotIn('@router.post("/execute"', source)
 
 
