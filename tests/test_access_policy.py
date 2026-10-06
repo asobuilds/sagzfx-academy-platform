@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import unittest
 
 from app.core.access_policy import module_is_accessible, plan_allows_tier
+from app.api.v1.payments import PRODUCTS, _one_month_after
 
 
 class LearningPlanPolicyTests(unittest.TestCase):
@@ -51,6 +52,17 @@ class LearningPlanPolicyTests(unittest.TestCase):
             plan="masters", tier_level="Masterclass", now=self.now,
             class_expires_at=self.past, first_opened_at=opened,
         ))
+
+
+class PaymentPlanTests(unittest.TestCase):
+    def test_client_prices_are_exact(self):
+        self.assertEqual(PRODUCTS["beginner"]["amount_kobo"], 15_000_000)
+        self.assertEqual(PRODUCTS["advanced"]["amount_kobo"], 25_000_000)
+        self.assertEqual(PRODUCTS["masters"]["amount_kobo"], 50_000_000)
+
+    def test_one_month_handles_end_of_month(self):
+        jan_31 = datetime(2027, 1, 31, tzinfo=timezone.utc)
+        self.assertEqual(_one_month_after(jan_31), datetime(2027, 2, 28, tzinfo=timezone.utc))
 
 
 if __name__ == "__main__":
