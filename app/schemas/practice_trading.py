@@ -34,3 +34,16 @@ class PracticeOrderOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PracticeLedgerEntryOut(BaseModel):
+    entry_id: UUID
+    entry_type: str
+    amount: Decimal
+    balance_after: Decimal
+    reference_type: str | None
+    reference_id: UUID | None
+    note: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

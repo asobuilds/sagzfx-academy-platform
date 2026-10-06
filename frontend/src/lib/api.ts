@@ -191,6 +191,29 @@ export const endpoints = {
       execution_enabled: boolean;
     }>("/api/v1/practice-trading/account", { method: "POST" }),
 
+  resetPracticeAccount: () =>
+    api<{
+      account_id: string;
+      starting_balance: string;
+      balance: string;
+      currency: string;
+      status: string;
+      reset_count: number;
+      execution_enabled: boolean;
+    }>("/api/v1/practice-trading/account/reset", { method: "POST" }),
+
+  practiceLedger: () =>
+    api<Array<{
+      entry_id: string;
+      entry_type: string;
+      amount: string;
+      balance_after: string;
+      reference_type: string | null;
+      reference_id: string | null;
+      note: string | null;
+      created_at: string;
+    }>>("/api/v1/practice-trading/ledger"),
+
   practiceOrders: () =>
     api<Array<{
       order_id: string;
