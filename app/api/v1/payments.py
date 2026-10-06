@@ -1,18 +1,7 @@
-"""
-SAGZFX ACADEMY - Payments API.
-
-Endpoints:
-  POST /payments/init                - start a checkout session
-  POST /payments/webhook/paystack    - receive Paystack confirmation
-
-Flow:
-  1. Frontend calls /init with a product_slug.
-  2. We create a Paystack session, return the checkout URL.
-  3. User pays on Paystack's hosted page.
-  4. Paystack sends us a webhook; we verify the signature,
-     then either flip has_paid_tuition or insert a premium_purchases row.
-"""
+"""SAGZFX ACADEMY - Paystack checkout and learning-plan activation."""
 import json
+from calendar import monthrange
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
@@ -26,30 +15,32 @@ from app.services.payments import init_paystack_checkout, verify_paystack_signat
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
-
-# ─── Product catalog ─────────────────────────────────────────
-# Amounts are in kobo (NGN * 100).
-# Adjust these to real prices when the client signs off.
-
 PRODUCTS = {
-    "tuition": {
-        "amount_kobo": 150_000_00,   # NGN 150,000
-        "description": "SAGZFX ACADEMY Full Tuition",
+    "beginner": {
+        "amount_kobo": 150_000_00,
+        "description": "SAGZFX Beginner Class - 1 Month + Lifetime Mentorship",
     },
-    "masterclass-pass": {
-        "amount_kobo": 75_000_00,    # NGN 75,000
-        "description": "SAGZFX Masterclass Access",
+    "advanced": {
+        "amount_kobo": 250_000_00,
+        "description": "SAGZFX Advanced Class - 1 Month + Lifetime Mentorship",
     },
-    "vip-smc-indicators": {
-        "amount_kobo": 25_000_00,    # NGN 25,000
-        "description": "VIP SMC Indicators Bundle",
+    "masters": {
+        "amount_kobo": 500_000_00,
+        "description": "SAGZFX Masters & One-on-One - 1 Month + Lifetime Mentorship",
     },
 }
 
 
+def _one_month_after(value: datetime) -> datetime:
+    year = value.year + (1 if value.month == 12 else 0)
+    month = 1 if value.month == 12 else value.month + 1
+    day = min(value.day, monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)
+
+
 class InitPaymentRequest(BaseModel):
     product_slug: str
-    callback_url: str  # where Paystack sends the user after payment
+    callback_url: str
 
 
 class InitPaymentResponse(BaseModel):
@@ -58,40 +49,22 @@ class InitPaymentResponse(BaseModel):
     reference: str
 
 
-# ─── Init endpoint ───────────────────────────────────────────
-
 @router.post("/init", response_model=InitPaymentResponse)
-async def init_payment(
-    payload: InitPaymentRequest,
-    user: User = Depends(get_current_user),
-):
+async def init_payment(payload: InitPaymentRequest, user: User = Depends(get_current_user)):
     product = PRODUCTS.get(payload.product_slug)
     if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Unknown product: {payload.product_slug}",
-        )
+        raise HTTPException(status_code=404, detail=f"Unknown product: {payload.product_slug}")
 
     init = await init_paystack_checkout(
         email=user.email,
         amount_kobo=product["amount_kobo"],
         callback_url=payload.callback_url,
-        metadata={
-            "user_id": str(user.user_id),
-            "product_slug": payload.product_slug,
-        },
+        metadata={"user_id": str(user.user_id), "product_slug": payload.product_slug},
     )
-
     return InitPaymentResponse(
-        provider=init.provider,
-        checkout_url=init.checkout_url,
-        reference=init.reference,
+        provider=init.provider, checkout_url=init.checkout_url, reference=init.reference
     )
 
-
-# ─── Webhook endpoint ────────────────────────────────────────
-# IMPORTANT: This endpoint MUST read the raw body (not parsed JSON)
-# because the signature is computed over the raw bytes.
 
 @router.post("/webhook/paystack", status_code=status.HTTP_200_OK)
 async def paystack_webhook(
@@ -100,19 +73,14 @@ async def paystack_webhook(
     db: AsyncSession = Depends(get_db),
 ):
     raw_body = await request.body()
-
     if not verify_paystack_signature(raw_body, x_paystack_signature):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Paystack signature.",
-        )
+        raise HTTPException(status_code=401, detail="Invalid Paystack signature.")
 
     try:
         event = json.loads(raw_body)
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON.")
 
-    # Paystack sends many event types; we only care about charge.success
     if event.get("event") != "charge.success":
         return {"received": True, "ignored": event.get("event")}
 
@@ -120,18 +88,20 @@ async def paystack_webhook(
     metadata = data.get("metadata") or {}
     user_id = metadata.get("user_id")
     product_slug = metadata.get("product_slug")
+    reference = data.get("reference")
+    product = PRODUCTS.get(product_slug)
 
-    if not user_id or not product_slug:
-        # Acknowledge so Paystack doesn't retry, but log the mismatch.
-        return {"received": True, "warning": "missing metadata"}
+    if not user_id or not reference or product is None:
+        return {"received": True, "warning": "invalid payment metadata"}
 
-    # Fetch the user
+    # Never grant entitlement from metadata alone: amount and currency must match.
+    if data.get("amount") != product["amount_kobo"] or data.get("currency") != "NGN":
+        return {"received": True, "warning": "payment amount or currency mismatch"}
+
     user = await db.get(User, user_id)
     if user is None:
         return {"received": True, "warning": "unknown user"}
 
-    # Idempotency: has this reference already been processed?
-    reference = data.get("reference")
     existing = await db.execute(
         select(PremiumPurchase).where(
             PremiumPurchase.user_id == user.user_id,
@@ -141,31 +111,35 @@ async def paystack_webhook(
     if existing.scalar_one_or_none() is not None:
         return {"received": True, "already_processed": True}
 
-    # Apply the product effect
-    if product_slug == "tuition":
-        user.has_paid_tuition = True
-    else:
-        purchase = PremiumPurchase(
-            user_id=user.user_id,
-            product_slug=product_slug,
-            is_recurring_subscription=False,
-            subscription_status="active",
-        )
-        db.add(purchase)
+    activated_at = datetime.now(timezone.utc)
+    expires_at = _one_month_after(activated_at)
+    user.learning_plan = product_slug
+    user.class_started_at = activated_at
+    user.class_expires_at = expires_at
+    user.mentorship_lifetime = True
+    # Preserve legacy flag temporarily for old code paths during migration.
+    user.has_paid_tuition = True
+    user.tuition_activated_at = activated_at
 
-    # Insert an idempotency marker so retried webhooks don't double-apply.
-    marker = PremiumPurchase(
+    db.add(PremiumPurchase(
+        user_id=user.user_id,
+        product_slug=product_slug,
+        is_recurring_subscription=False,
+        subscription_status="active",
+        expires_at=expires_at,
+    ))
+    db.add(PremiumPurchase(
         user_id=user.user_id,
         product_slug=f"paid:{reference}",
         is_recurring_subscription=False,
         subscription_status="processed",
-    )
-    db.add(marker)
-
+    ))
     await db.commit()
 
     return {
         "received": True,
         "applied": product_slug,
         "user_id": str(user.user_id),
+        "class_expires_at": expires_at.isoformat(),
+        "mentorship_lifetime": True,
     }

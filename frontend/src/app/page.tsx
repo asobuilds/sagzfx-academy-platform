@@ -191,7 +191,7 @@ export default function Home() {
                 Foundations: currency pairs, sessions, pips, lots, candlesticks, risk.
               </p>
               <div className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-                12 modules · Free
+                12 modules · Beginner plan
               </div>
             </div>
 
@@ -205,7 +205,7 @@ export default function Home() {
                 Higher highs, BOS, CHOCH, supply &amp; demand, liquidity, FVG.
               </p>
               <div className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-                14 modules · Tuition
+                14 modules · Advanced plan
               </div>
             </div>
 
@@ -219,7 +219,7 @@ export default function Home() {
                 Institutional order flow, SMC, displacement, mitigation, kill-zones.
               </p>
               <div className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-                20 modules · Premium
+                20 modules · Advanced plan
               </div>
             </div>
 
@@ -236,7 +236,7 @@ export default function Home() {
                 Capstone: putting everything together into a personal trading plan.
               </p>
               <div className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-                1 module · Premium
+                1 module · Masters plan
               </div>
             </div>
 
@@ -304,8 +304,8 @@ export default function Home() {
             Ready to <span className="text-gradient">trade like a pro?</span>
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: "var(--text-secondary)" }}>
-            Create a free account. Get the Exness demo environment, the beginner
-            track, and access to the private Discord community — all for free.
+            Create your account, choose the class that matches your level, and begin your
+            one-month training period with lifetime mentorship after enrollment.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <Link

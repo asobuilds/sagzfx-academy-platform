@@ -96,18 +96,8 @@ export default function DashboardPage() {
   }
 
   const tier = catalog.access_tier;
-  const tierPill =
-    tier === "premium"
-      ? "pill-gold"
-      : tier === "tuition"
-        ? "pill-blue"
-        : "pill-green";
-  const tierLabel =
-    tier === "premium"
-      ? "Premium Member"
-      : tier === "tuition"
-        ? "Tuition Student"
-        : "Registered Student";
+  const tierPill = tier === "masters" ? "pill-gold" : tier === "advanced" ? "pill-blue" : tier === "beginner" ? "pill-green" : "pill-red";
+  const tierLabel = tier === "masters" ? "Masters & One-on-One" : tier === "advanced" ? "Advanced Student" : tier === "beginner" ? "Beginner Student" : "Registered Account";
 
   // Group modules by tier_level
   const modulesByTier = catalog.modules.reduce<Record<string, ModuleSummary[]>>(
@@ -140,18 +130,18 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {tier !== "premium" && (
+          {tier !== "masters" && (
             <Link
               href="/pricing"
               className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-500/20"
             >
-              {tier === "tuition" ? "Unlock Masterclass →" : "Upgrade →"}
+              {tier === "registered" ? "Choose a class →" : "Upgrade →"}
             </Link>
           )}
         </div>
 
         {/* Progress strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-4">
           <StatBox label="Modules Unlocked" value={`${catalog.unlocked_count} / ${catalog.total}`} />
           <StatBox label="Community" value={realtime.channel} mono />
           <StatBox
@@ -159,7 +149,9 @@ export default function DashboardPage() {
             value={mt5.bound ? (mt5.login ?? "Bound") : "Not activated"}
             mono={mt5.bound}
           />
-          <StatBox label="Tier" value={tier.toUpperCase()} />
+          <StatBox label="Plan" value={tier.toUpperCase()} />
+          <StatBox label="Class Ends" value={user.class_expires_at ? new Date(user.class_expires_at).toLocaleDateString() : "Not active"} />
+          <StatBox label="Mentorship" value={user.mentorship_lifetime ? "Lifetime" : "Not active"} />
         </div>
       </div>
 
@@ -279,11 +271,10 @@ function ModuleCard({ module }: { module: ModuleSummary }) {
   const isLocked = !module.unlocked;
 
   return (
-    <div
-      className={`glass rounded-2xl p-5 space-y-3 relative overflow-hidden ${
-        isLocked ? "" : "hover-lift cursor-pointer"
-      }`}
-    >
+    <div className="relative">
+      {isLocked ? (
+        <div className="glass rounded-2xl p-5 space-y-3 relative overflow-hidden opacity-75">
+
       {/* Tier tag */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
@@ -302,13 +293,20 @@ function ModuleCard({ module }: { module: ModuleSummary }) {
         {module.title}
       </h4>
 
-      {/* Progress bar (visual only for now) */}
       <div className="h-1 rounded-full bg-black/40 overflow-hidden">
-        <div
-          className={`h-full ${isLocked ? "bg-slate-700" : "brand-gradient"}`}
-          style={{ width: isLocked ? "0%" : "100%" }}
-        />
+        <div className="h-full bg-slate-400" style={{ width: "0%" }} />
       </div>
+        </div>
+      ) : (
+        <Link href={`/module/${module.module_id}`} className="block glass rounded-2xl p-5 space-y-3 hover-lift">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{module.module_id}</span>
+            <span className="pill pill-green">Open</span>
+          </div>
+          <h4 className="text-base font-semibold leading-snug">{module.title}</h4>
+          <span className="text-sm text-cyan-700 font-semibold">Open module →</span>
+        </Link>
+      )}
     </div>
   );
 }
