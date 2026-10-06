@@ -143,7 +143,7 @@ export default function DashboardPage() {
           {tier !== "premium" && (
             <Link
               href="/pricing"
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40"
+              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-500/20"
             >
               {tier === "tuition" ? "Unlock Masterclass →" : "Upgrade →"}
             </Link>
@@ -200,7 +200,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-2xl p-4 border" style={{ background: "rgba(5, 11, 20, 0.6)", borderColor: "var(--border-subtle)" }}>
+        <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
           <p className="text-xs uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>
             Exness Partner Link
           </p>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
             href={mt5.exness_ib_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyan-400 hover:text-cyan-300 font-mono text-sm break-all"
+            className="text-cyan-700 hover:text-cyan-800 font-mono text-sm break-all"
           >
             {mt5.exness_ib_link}
           </a>
