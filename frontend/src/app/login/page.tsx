@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { endpoints, setTokens, ApiError } from "@/lib/api";
+import { endpoints, ApiError } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,9 +18,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const tokens = await endpoints.login(email, password);
-      setTokens(tokens.access_token, tokens.refresh_token);
+      await endpoints.login(email, password);
       router.push("/dashboard");
+      router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(typeof err.detail === "string" ? err.detail : "Invalid login.");
