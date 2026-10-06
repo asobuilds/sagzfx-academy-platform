@@ -10,7 +10,7 @@ export default function PracticePage() {
  const [symbol,setSymbol]=useState("EURUSD"),[lot,setLot]=useState("0.10"),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
  async function refresh(){const [a,o,l]=await Promise.all([endpoints.practiceAccount(),endpoints.practiceOrders(),endpoints.practiceLedger()]);setAccount(a);setOrders(o);setLedger(l);}
  useEffect(()=>{void Promise.resolve().then(refresh).catch(()=>setError("Unable to load practice trading."));},[]);
- useEffect(()=>{void Promise.resolve().then(()=>endpoints.practiceQuote(symbol)).then(setQuote).catch(()=>setQuote(null));},[symbol]);
+ useEffect(()=>{void Promise.all([endpoints.practiceQuote(symbol),endpoints.practiceHistory(symbol)]).then(([q,h])=>{setQuote(q);setHistory(h);}).catch(()=>{setQuote(null);setHistory([]);});},[symbol]);
  async function act(fn:()=>Promise<unknown>){setBusy(true);setError(null);try{await fn();await refresh();}catch(e){setError(e instanceof ApiError?String(e.detail):"Practice action failed.");}finally{setBusy(false);}}
  const closed=orders.filter(o=>o.status==="closed"),open=orders.filter(o=>o.status==="open");
  const realized=useMemo(()=>closed.reduce((n,o)=>n+Number(o.realized_pnl??0),0),[closed]);
@@ -19,7 +19,29 @@ export default function PracticePage() {
   <div className="glass-strong rounded-3xl p-8 space-y-3"><h1 className="text-3xl md:text-5xl font-bold">SAGZFX Practice Trading</h1><p style={{color:"var(--text-secondary)"}}>Virtual money only. Reference rates are educational mid-market data, not broker bid/ask prices and not real-time execution.</p>{error&&<p className="text-red-600 font-semibold">{error}</p>}</div>
   {!account?<button disabled={busy} onClick={()=>act(endpoints.createPracticeAccount)} className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold">Activate Free $10,000 Practice Account</button>:<>
    <div className="grid grid-cols-2 md:grid-cols-5 gap-4"><Stat label="Balance" value={"USD "+Number(account.balance).toLocaleString()}/><Stat label="Open Positions" value={String(open.length)}/><Stat label="Closed Trades" value={String(closed.length)}/><Stat label="Realized P/L" value={"$"+realized.toFixed(2)}/><Stat label="Win Rate" value={winRate+"%"}/></div>
-   <div className="glass rounded-3xl p-6 space-y-5"><div className="flex flex-wrap gap-3 items-end">
+   <div className="rounded-2xl overflow-hidden border bg-slate-950 text-slate-100" style={{borderColor:"#273244"}}>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
+          <div><div className="text-xs text-slate-400">SAGZFX PRACTICE · REFERENCE MARKET</div><div className="text-2xl font-bold">{symbol.slice(0,3)}/{symbol.slice(3)} <span className="text-base text-slate-400">{quote?.rate ?? "—"}</span></div></div>
+          <div className="flex gap-2">{["EURUSD","GBPUSD","AUDUSD"].map(s=><button key={s} onClick={()=>setSymbol(s)} className={`px-3 py-2 rounded-lg text-sm ${symbol===s?"bg-slate-700":"bg-slate-900"}`}>{s.slice(0,3)}/{s.slice(3)}</button>)}</div>
+        </div>
+        <div className="grid lg:grid-cols-[1fr_280px]">
+          <div className="p-4 min-w-0">
+            <div className="flex gap-2 mb-3 text-xs text-slate-400"><span>1D reference candles</span><span>·</span><span>{quote?.provider ?? "Reference feed"}</span><span>·</span><span>{quote?.rate_date ?? "—"}</span></div>
+            <MarketChart points={history}/>
+          </div>
+          <div className="border-t lg:border-t-0 lg:border-l border-slate-800 p-5 space-y-5">
+            <div><div className="text-xs text-slate-400">Virtual balance</div><div className="text-2xl font-bold">${Number(account.balance).toLocaleString()}</div></div>
+            <label className="block"><span className="text-xs text-slate-400">Lot size</span><input value={lot} onChange={e=>setLot(e.target.value)} type="number" min="0.01" max="10" step="0.01" className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 p-3 text-white"/></label>
+            <div className="grid grid-cols-2 gap-3">
+              <button disabled={busy||!quote} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"sell",lot))} className="py-4 rounded-xl bg-red-600 disabled:opacity-40 font-bold">SELL</button>
+              <button disabled={busy||!quote} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"buy",lot))} className="py-4 rounded-xl bg-emerald-600 disabled:opacity-40 font-bold">BUY</button>
+            </div>
+            <div className="text-xs text-slate-400 leading-5">Educational virtual fill at the displayed dated reference rate. Not broker bid/ask or real-time execution.</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass rounded-3xl p-6 space-y-5"><div className="flex flex-wrap gap-3 items-end">
     <label className="space-y-1"><span className="text-xs">Pair</span><select value={symbol} onChange={e=>setSymbol(e.target.value)} className="block border rounded-lg p-3 bg-white"><option>EURUSD</option><option>GBPUSD</option><option>AUDUSD</option></select></label>
     <label className="space-y-1"><span className="text-xs">Lot size</span><input value={lot} onChange={e=>setLot(e.target.value)} type="number" min="0.01" max="10" step="0.01" className="block border rounded-lg p-3 bg-white w-32"/></label>
     <button disabled={busy} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"buy",lot))} className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold">Buy</button>
