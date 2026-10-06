@@ -3,7 +3,7 @@
 Account/history access is live. Trade execution is intentionally absent until
 an approved live market-data adapter is configured.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models import PracticeAccount, PracticeOrder, User
 from app.schemas.practice_trading import PracticeAccountOut, PracticeOrderOut
+from app.services.reference_fx import fetch_reference_quote
 
 router = APIRouter(prefix="/practice-trading", tags=["practice-trading"])
 
@@ -64,3 +65,28 @@ async def list_orders(
         .order_by(PracticeOrder.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+@router.get("/quote/{symbol}")
+async def get_reference_quote(
+    symbol: str,
+    _user: User = Depends(get_current_user),
+):
+    """Return a dated educational reference rate, never a broker execution quote."""
+    try:
+        quote = fetch_reference_quote(symbol)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {
+        "symbol": quote.symbol,
+        "rate": str(quote.rate),
+        "rate_date": quote.rate_date.isoformat(),
+        "provider": quote.provider,
+        "price_type": quote.price_type,
+        "realtime": quote.realtime,
+        "execution_enabled": False,
+        "disclaimer": "Educational reference rate only; not a broker bid/ask or real-time execution price.",
+    }
