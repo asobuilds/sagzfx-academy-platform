@@ -8,24 +8,18 @@ const API_BASE =
 
 // ─── Auth storage ──────────────────────────────────────────
 
-const TOKEN_KEY = "sagzfx_access_token";
-const REFRESH_KEY = "sagzfx_refresh_token";
-
+// Browser authentication is carried by Secure HttpOnly cookies.
+// These compatibility helpers intentionally never persist JWTs in Web Storage.
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  return null;
 }
 
-export function setTokens(access: string, refresh: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(TOKEN_KEY, access);
-  window.localStorage.setItem(REFRESH_KEY, refresh);
+export function setTokens(_access: string, _refresh: string): void {
+  // Cookies are issued by the backend login response.
 }
 
 export function clearTokens(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
+  // Cookies are cleared by POST /auth/logout.
 }
 
 // ─── Fetch wrapper ─────────────────────────────────────────
@@ -73,10 +67,6 @@ export async function api<T = unknown>(
     }
   }
 
-  if (auth) {
-    const token = getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  }
 
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
 
@@ -85,6 +75,7 @@ export async function api<T = unknown>(
     headers,
     body: payload,
     cache: "no-store",
+    credentials: "include",
   });
 
   const contentType = res.headers.get("content-type") ?? "";
@@ -171,6 +162,8 @@ export const endpoints = {
     }),
 
   me: () => api<User>("/api/v1/auth/me"),
+
+  logout: () => api<void>("/api/v1/auth/logout", { method: "POST" }),
 
   catalog: () => api<CatalogResponse>("/api/v1/curriculum/modules"),
 
