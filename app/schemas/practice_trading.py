@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PracticeAccountOut(BaseModel):
@@ -18,6 +18,12 @@ class PracticeAccountOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PracticeOrderCreate(BaseModel):
+    symbol: str
+    side: str
+    lot_size: Decimal = Field(gt=0, le=10)
+
+
 class PracticeOrderOut(BaseModel):
     order_id: UUID
     symbol: str
@@ -29,6 +35,9 @@ class PracticeOrderOut(BaseModel):
     take_profit: Decimal | None
     status: str
     fill_price: Decimal | None
+    close_price: Decimal | None
+    realized_pnl: Decimal | None
+    quote_date: datetime | None
     opened_at: datetime | None
     closed_at: datetime | None
     created_at: datetime
