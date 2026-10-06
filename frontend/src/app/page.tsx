@@ -67,7 +67,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/#curriculum"
-                className="text-sm font-medium flex items-center gap-2 hover:text-cyan-400 transition"
+                className="text-sm font-medium flex items-center gap-2 hover:text-cyan-700 transition"
                 style={{ color: "var(--text-secondary)" }}
               >
                 See the curriculum
@@ -81,7 +81,7 @@ export default function Home() {
                 <strong className="text-green-500">Knowledge</strong>
               </span>
               <span>
-                <strong className="text-cyan-400">Strategy</strong>
+                <strong className="text-cyan-700">Strategy</strong>
               </span>
               <span>
                 <strong className="text-amber-500">Discipline</strong>
@@ -106,7 +106,7 @@ export default function Home() {
               </div>
 
               {/* Mock chart */}
-              <div className="rounded-2xl p-6 space-y-3" style={{ background: "rgba(5, 11, 20, 0.6)" }}>
+              <div className="rounded-2xl p-6 space-y-3" style={{ background: "rgba(241, 245, 249, 0.9)" }}>
                 <div className="text-xs uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
                   XAUUSD · M15
                 </div>
@@ -310,7 +310,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <Link
               href="/register"
-              className="px-8 py-4 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40"
+              className="px-8 py-4 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-500/20"
             >
               Create Free Account
             </Link>
@@ -334,13 +334,13 @@ export default function Home() {
             Talk to us
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-            <a href="tel:+2349152100856" className="hover:text-cyan-400 transition">
+            <a href="tel:+2349152100856" className="hover:text-cyan-700 transition">
               📞 +234 915 210 0856
             </a>
-            <a href="tel:+2348064963367" className="hover:text-cyan-400 transition">
+            <a href="tel:+2348064963367" className="hover:text-cyan-700 transition">
               📞 +234 806 496 3367
             </a>
-            <span className="text-cyan-400">@sagzfxacademy</span>
+            <span className="text-cyan-700">@sagzfxacademy</span>
           </div>
         </div>
       </section>
