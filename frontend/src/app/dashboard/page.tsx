@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [mt5, setMt5] = useState<MT5Status | null>(null);
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [provisioning, setProvisioning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,6 +66,19 @@ export default function DashboardPage() {
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function provisionMt5() {
+    setProvisioning(true);
+    setError(null);
+    try {
+      await endpoints.provisionMt5();
+      setMt5(await endpoints.mt5Status());
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Unable to provision MT5 demo.");
+    } finally {
+      setProvisioning(false);
+    }
+  }
 
   // ─── Loading state ─────────────────────────────────────
   if (loading) {
@@ -170,7 +184,7 @@ export default function DashboardPage() {
                 Exness Demo Sandbox
               </h2>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Risk-free environment linked to live market feeds
+                Free MT5 demo for every account type — no paid plan required
               </p>
             </div>
           </div>
@@ -183,12 +197,14 @@ export default function DashboardPage() {
               </span>
             </div>
           ) : (
-            <Link
-              href="/dashboard#mt5"
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift"
+            <button
+              type="button"
+              onClick={provisionMt5}
+              disabled={provisioning}
+              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift disabled:opacity-50"
             >
-              Provision Demo
-            </Link>
+              {provisioning ? "Provisioning…" : "Provision Free Demo"}
+            </button>
           )}
         </div>
 
