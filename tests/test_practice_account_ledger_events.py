@@ -20,10 +20,10 @@ class PracticeAccountLedgerEventTests(unittest.TestCase):
         self.assertIn('entry_type="reset"', source)
         self.assertNotIn("DELETE FROM practice_ledger_entries", source)
 
-    def test_execution_is_still_absent(self):
+    def test_execution_is_virtual_and_ledger_backed(self):
         source = (ROOT / "app" / "api" / "v1" / "practice_trading.py").read_text()
-        self.assertNotIn('@router.post("/orders"', source)
-        self.assertNotIn('@router.post("/trade"', source)
+        self.assertIn('@router.post("/orders"', source)
+        self.assertIn('entry_type="realized_pnl"', source)
         self.assertNotIn('@router.post("/execute"', source)
 
 
