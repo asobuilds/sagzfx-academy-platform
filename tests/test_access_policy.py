@@ -3,6 +3,9 @@ import unittest
 
 from app.core.access_policy import module_is_accessible, plan_allows_tier
 from app.api.v1.payments import PRODUCTS, _one_month_after
+from app.api.v1.community import _mentorship_channel
+from app.services.community import realtime_channel_for_tier
+from app.models import User
 
 
 class LearningPlanPolicyTests(unittest.TestCase):
@@ -63,6 +66,47 @@ class PaymentPlanTests(unittest.TestCase):
     def test_one_month_handles_end_of_month(self):
         jan_31 = datetime(2027, 1, 31, tzinfo=timezone.utc)
         self.assertEqual(_one_month_after(jan_31), datetime(2027, 2, 28, tzinfo=timezone.utc))
+
+
+class LifetimeMentorshipTests(unittest.TestCase):
+    def test_paid_plans_keep_their_mentorship_channel(self):
+        for plan in ("beginner", "advanced", "masters"):
+            user = User(
+                full_name="Test Student",
+                email=f"{plan}@example.com",
+                password_hash="test",
+                learning_plan=plan,
+                mentorship_lifetime=True,
+            )
+            self.assertEqual(_mentorship_channel(user), plan)
+
+    def test_unpaid_account_does_not_gain_paid_mentorship(self):
+        user = User(
+            full_name="Registered Student",
+            email="registered@example.com",
+            password_hash="test",
+            learning_plan="registered",
+            mentorship_lifetime=False,
+        )
+        self.assertEqual(_mentorship_channel(user), "registered")
+
+    def test_current_plan_channels_are_mapped(self):
+        self.assertEqual(realtime_channel_for_tier("beginner"), "sagzfx:beginner")
+        self.assertEqual(realtime_channel_for_tier("advanced"), "sagzfx:advanced")
+        self.assertEqual(realtime_channel_for_tier("masters"), "sagzfx:masters")
+
+
+class Mt5AccessContractTests(unittest.TestCase):
+    def test_mt5_is_not_part_of_paid_curriculum_policy(self):
+        # Product contract: every authenticated account can use MT5 demo.
+        # The MT5 endpoint depends only on get_current_user and never calls
+        # plan_allows_tier/module_is_accessible.
+        import inspect
+        from app.api.v1.mt5_demo import provision_endpoint
+        source = inspect.getsource(provision_endpoint)
+        self.assertNotIn("plan_allows_tier", source)
+        self.assertNotIn("learning_plan", source)
+        self.assertNotIn("mentorship_lifetime", source)
 
 
 if __name__ == "__main__":
