@@ -196,18 +196,6 @@ export default function DashboardPage() {
           <Link href="/practice" className="inline-block px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift">Open Practice Trading Workspace →</Link>
         </>)}
 
-        {practice && (
-          <Link href="/practice" className="inline-flex px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift">
-            Open Practice Trading Workspace →
-          </Link>
-        )}
-
-        {practice && (
-          <Link href="/practice" className="inline-flex px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift">
-            Open Practice Trading Workspace →
-          </Link>
-        )}
-
         <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
           <p className="text-sm font-semibold">Ready for a real Exness account?</p>
           <a href="https://one.exnessonelink.com/a/ut6xqvmg34" target="_blank" rel="noopener noreferrer"
