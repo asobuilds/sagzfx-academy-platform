@@ -21,6 +21,10 @@ class PracticeAccount(Base):
     reset_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    @property
+    def execution_enabled(self) -> bool:
+        return self.status == "active"
+
     orders: Mapped[list["PracticeOrder"]] = relationship("PracticeOrder", back_populates="account", cascade="all, delete-orphan")
     ledger_entries: Mapped[list["PracticeLedgerEntry"]] = relationship("PracticeLedgerEntry", back_populates="account", cascade="all, delete-orphan")
 
