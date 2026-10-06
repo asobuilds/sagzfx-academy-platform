@@ -56,8 +56,8 @@ async def create_account(
             PracticeLedgerEntry(
                 account_id=created_account_id,
                 entry_type="account_opened",
-                amount=10000,
-                balance_after=10000,
+                amount=Decimal("10000.00"),
+                balance_after=Decimal("10000.00"),
                 note="Initial SAGZFX virtual practice balance",
             )
         )
