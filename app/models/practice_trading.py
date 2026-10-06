@@ -1,9 +1,9 @@
 """Persistent virtual-money models for SAGZFX Practice Trading."""
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, func, text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -40,7 +40,7 @@ class PracticeOrder(Base):
     fill_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     close_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     realized_pnl: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
-    quote_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    quote_date: Mapped[date | None] = mapped_column(Date)
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
