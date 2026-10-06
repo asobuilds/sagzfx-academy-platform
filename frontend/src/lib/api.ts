@@ -214,6 +214,9 @@ export const endpoints = {
       created_at: string;
     }>>("/api/v1/practice-trading/ledger"),
 
+  practiceHistory: (symbol: string) =>
+    api<Array<{ date: string; rate: number }>>(`/api/v1/practice-trading/history/${symbol}`),
+
   practiceQuote: (symbol: string) =>
     api<{
       symbol: string;

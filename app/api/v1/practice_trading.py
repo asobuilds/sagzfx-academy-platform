@@ -241,6 +241,26 @@ async def list_orders(
     return list(result.scalars().all())
 
 
+@router.get("/history/{symbol}")
+async def reference_history(symbol: str, _user: User = Depends(get_current_user)):
+    normalized = symbol.upper().replace("/", "")
+    if normalized not in EXECUTABLE_USD_QUOTE_PAIRS:
+        raise HTTPException(status_code=400, detail="Chart history currently supports EURUSD, GBPUSD and AUDUSD")
+    base, quote = normalized[:3], normalized[3:]
+    from datetime import date as _date, timedelta
+    from urllib.parse import urlencode
+    from urllib.request import Request, urlopen
+    import json as _json
+    start = (_date.today() - timedelta(days=120)).isoformat()
+    url = f"https://api.frankfurter.dev/v1/{start}..?{urlencode({'base': base, 'symbols': quote})}"
+    try:
+        with urlopen(Request(url, headers={"Accept": "application/json", "User-Agent": "SAGZFX-Academy/1.0"}), timeout=8) as response:
+            payload = _json.loads(response.read().decode("utf-8"))
+        return [{"date": day, "rate": rates[quote]} for day, rates in sorted(payload["rates"].items()) if quote in rates]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Reference chart history is unavailable") from exc
+
+
 @router.get("/quote/{symbol}")
 async def get_reference_quote(
     symbol: str,
