@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
+  const [newDemo, setNewDemo] = useState<{ login: string; password: string; investor_password: string; server: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,7 +72,8 @@ export default function DashboardPage() {
     setProvisioning(true);
     setError(null);
     try {
-      await endpoints.provisionMt5();
+      const credentials = await endpoints.provisionMt5();
+      setNewDemo(credentials);
       setMt5(await endpoints.mt5Status());
     } catch (err) {
       setError(err instanceof ApiError ? String(err.detail) : "Unable to provision MT5 demo.");
@@ -207,6 +209,16 @@ export default function DashboardPage() {
             </button>
           )}
         </div>
+
+        {newDemo && (
+          <div className="rounded-2xl p-5 border space-y-2">
+            <p className="font-semibold">Save these MT5 demo credentials now. The password is shown only once.</p>
+            <p className="font-mono text-sm">Login: {newDemo.login}</p>
+            <p className="font-mono text-sm">Password: {newDemo.password}</p>
+            <p className="font-mono text-sm">Investor password: {newDemo.investor_password}</p>
+            <p className="font-mono text-sm">Server: {newDemo.server}</p>
+          </div>
+        )}
 
         <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
           <p className="text-xs uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>
