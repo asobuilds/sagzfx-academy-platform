@@ -1,7 +1,7 @@
 """
 SAGZFX ACADEMY - FastAPI application entrypoint.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select
 
@@ -31,6 +31,17 @@ app.add_middleware(
 )
 
 API = "/api/v1"
+
+
+@app.middleware("http")
+async def reject_cross_site_unsafe_requests(request: Request, call_next):
+    """Block CSRF attempts against cookie-authenticated state-changing routes."""
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("origin")
+        if origin and origin not in cors_origins:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=403, content={"detail": "Untrusted request origin."})
+    return await call_next(request)
 
 
 @app.get("/", tags=["system"])
