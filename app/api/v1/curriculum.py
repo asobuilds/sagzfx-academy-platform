@@ -1,92 +1,63 @@
-"""
-SAGZFX ACADEMY - Curriculum routes.
+"""SAGZFX ACADEMY - Curriculum routes with plan and expiry enforcement."""
+from datetime import datetime, timezone
 
-Two endpoints:
-  GET /curriculum/modules             -> full tier-projected catalog
-  GET /curriculum/modules/{module_id} -> single module (402/403 if locked)
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.access_policy import module_is_accessible, plan_allows_tier
 from app.core.database import get_db
-from app.models import CourseModule, PremiumPurchase, User
+from app.models import CourseModule, StudentProgress, User
 from app.schemas.curriculum import CatalogResponse, ModuleDetail, ModuleSummary
 
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
 
 
-# ─── Helpers ─────────────────────────────────────────────────
-
-def _is_unlocked(module: CourseModule, tier: str) -> bool:
-    """
-    Tier rules for SAGZFX curriculum:
-      - Premium users: everything is unlocked.
-      - Tuition users: everything except is_premium_locked=True rows.
-      - Registered users: only rows that are NOT premium-locked. Beginners
-        (tier_level='Beginner') are free previews; everything else is
-        considered locked behind tuition.
-    """
-    if tier == "premium":
-        return True
-    if tier == "tuition":
-        return not module.is_premium_locked
-    # registered
-    return module.tier_level == "Beginner" and not module.is_premium_locked
+async def _progress_for_user(db: AsyncSession, user: User) -> dict[str, StudentProgress]:
+    rows = (
+        await db.execute(select(StudentProgress).where(StudentProgress.user_id == user.user_id))
+    ).scalars().all()
+    return {row.module_id: row for row in rows}
 
 
-async def _resolve_tier(user: User, db: AsyncSession) -> str:
-    """Return 'premium' | 'tuition' | 'registered' based on DB state."""
-    # Check for an active premium purchase
-    stmt = (
-        select(PremiumPurchase)
-        .where(
-            PremiumPurchase.user_id == user.user_id,
-            PremiumPurchase.subscription_status == "active",
-        )
-        .limit(1)
+def _unlocked(module: CourseModule, user: User, progress: StudentProgress | None, now: datetime) -> bool:
+    return module_is_accessible(
+        plan=user.learning_plan,
+        tier_level=module.tier_level,
+        now=now,
+        class_expires_at=user.class_expires_at,
+        first_opened_at=progress.first_opened_at if progress else None,
     )
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none() is not None:
-        return "premium"
-    if user.has_paid_tuition:
-        return "tuition"
-    return "registered"
 
-
-# ─── Endpoints ───────────────────────────────────────────────
 
 @router.get("/modules", response_model=CatalogResponse)
 async def list_modules(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    tier = await _resolve_tier(user, db)
-
+    now = datetime.now(timezone.utc)
+    progress = await _progress_for_user(db, user)
     rows = (
         await db.execute(select(CourseModule).order_by(CourseModule.sort_order))
     ).scalars().all()
 
-    modules: list[ModuleSummary] = []
+    modules = []
     unlocked_count = 0
-    for m in rows:
-        unlocked = _is_unlocked(m, tier)
-        if unlocked:
-            unlocked_count += 1
-        modules.append(
-            ModuleSummary(
-                module_id=m.module_id,
-                tier_level=m.tier_level,
-                title=m.title,
-                sort_order=m.sort_order,
-                is_premium_locked=m.is_premium_locked,
-                unlocked=unlocked,
-            )
-        )
+    for module in rows:
+        unlocked = _unlocked(module, user, progress.get(module.module_id), now)
+        unlocked_count += int(unlocked)
+        modules.append(ModuleSummary(
+            module_id=module.module_id,
+            tier_level=module.tier_level,
+            title=module.title,
+            sort_order=module.sort_order,
+            is_premium_locked=module.is_premium_locked,
+            unlocked=unlocked,
+        ))
 
     return CatalogResponse(
-        access_tier=tier,
+        access_tier=user.learning_plan,
         total=len(modules),
         unlocked_count=unlocked_count,
         modules=modules,
@@ -103,25 +74,40 @@ async def get_module(
     if module is None:
         raise HTTPException(status_code=404, detail="Module not found.")
 
-    tier = await _resolve_tier(user, db)
-    unlocked = _is_unlocked(module, tier)
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(StudentProgress).where(
+            StudentProgress.user_id == user.user_id,
+            StudentProgress.module_id == module_id,
+        )
+    )
+    progress = result.scalar_one_or_none()
 
-    # Locked content -> 402 (payment required) for tuition-tier content,
-    # 403 (forbidden) for premium-tier content.
-    if not unlocked:
-        code = (
-            status.HTTP_403_FORBIDDEN
-            if module.is_premium_locked
-            else status.HTTP_402_PAYMENT_REQUIRED
-        )
-        raise HTTPException(
-            status_code=code,
-            detail=(
-                "Premium purchase required for this module."
-                if module.is_premium_locked
-                else "Tuition payment required for this module."
-            ),
-        )
+    if not _unlocked(module, user, progress, now):
+        if not plan_allows_tier(user.learning_plan, module.tier_level):
+            detail = "Your learning plan does not include this module."
+        elif user.class_expires_at and now > user.class_expires_at:
+            detail = "Your class period has ended and this module was not opened during it."
+        else:
+            detail = "An active class period is required to open this module."
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+    # First successful access during the active class permanently records the module.
+    if (
+        user.class_expires_at
+        and now <= user.class_expires_at
+        and (progress is None or progress.first_opened_at is None)
+    ):
+        if progress is None:
+            progress = StudentProgress(
+                user_id=user.user_id,
+                module_id=module.module_id,
+                first_opened_at=now,
+            )
+            db.add(progress)
+        else:
+            progress.first_opened_at = now
+        await db.commit()
 
     return ModuleDetail(
         module_id=module.module_id,
