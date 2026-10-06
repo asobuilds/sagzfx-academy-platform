@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   endpoints,
-  getToken,
-  clearTokens,
   ApiError,
   type User,
   type CatalogResponse,
@@ -40,11 +38,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
-
     Promise.all([
       endpoints.me(),
       endpoints.catalog(),
@@ -59,7 +52,6 @@ export default function DashboardPage() {
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
-          clearTokens();
           router.push("/login");
           return;
         }
