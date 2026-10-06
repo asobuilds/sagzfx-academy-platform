@@ -12,7 +12,6 @@ from app.core.database import Base
 
 class PracticeAccount(Base):
     __tablename__ = "practice_accounts"
-
     account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), unique=True, nullable=False)
     starting_balance: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False, server_default=text("10000.00"))
@@ -22,19 +21,17 @@ class PracticeAccount(Base):
     reset_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
-
     orders: Mapped[list["PracticeOrder"]] = relationship("PracticeOrder", back_populates="account", cascade="all, delete-orphan")
 
 
 class PracticeOrder(Base):
     __tablename__ = "practice_orders"
-
     order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
     account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("practice_accounts.account_id", ondelete="CASCADE"), nullable=False)
     symbol: Mapped[str] = mapped_column(String(30), nullable=False)
     side: Mapped[str] = mapped_column(String(4), nullable=False)
     order_type: Mapped[str] = mapped_column(String(10), nullable=False)
-    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    lot_size: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     requested_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     stop_loss: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     take_profit: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
@@ -43,5 +40,4 @@ class PracticeOrder(Base):
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-
     account: Mapped[PracticeAccount] = relationship("PracticeAccount", back_populates="orders")
