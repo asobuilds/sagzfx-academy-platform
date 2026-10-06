@@ -155,7 +155,7 @@ export const endpoints = {
     }),
 
   login: (email: string, password: string) =>
-    api<TokenPair>("/api/v1/auth/login", {
+    api<{ authenticated: boolean }>("/api/v1/auth/login", {
       method: "POST",
       body: { email, password },
       auth: false,
