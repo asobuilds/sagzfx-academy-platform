@@ -28,7 +28,7 @@ class PracticeExecutionContractTests(unittest.TestCase):
     def test_workspace_discloses_reference_rate_limitations(self):
         self.assertIn("Virtual money only", self.ui)
         self.assertIn("not broker bid/ask prices", self.ui)
-        self.assertIn("rate date", self.ui)
+        self.assertIn("rate_date", self.ui)
 
 if __name__ == "__main__":
     unittest.main()
