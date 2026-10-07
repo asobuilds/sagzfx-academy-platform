@@ -10,6 +10,7 @@ from decimal import Decimal
 import json
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+from xml.etree import ElementTree
 
 FRANKFURTER_BASE_URL = "https://api.frankfurter.dev/v2"
 FRANKFURTER_V1_BASE_URL = "https://api.frankfurter.dev/v1"
@@ -57,7 +58,31 @@ def fetch_reference_quote(symbol: str, timeout: float = 5.0) -> ReferenceQuote:
         except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
             last_error = exc
     if payload is None:
-        raise RuntimeError("reference FX rate is temporarily unavailable") from last_error
+        # Independent fallback: the ECB publishes free daily euro reference
+        # rates. Cross-rates let practice execution continue when Frankfurter
+        # itself is unreachable from the production host.
+        try:
+            with urlopen("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", timeout=timeout) as response:
+                root = ElementTree.parse(response).getroot()
+            day_node = next(node for node in root.iter() if node.attrib.get("time"))
+            rates = {"EUR": Decimal("1")}
+            rates.update({
+                node.attrib["currency"]: Decimal(node.attrib["rate"])
+                for node in day_node
+                if "currency" in node.attrib and "rate" in node.attrib
+            })
+            rate = rates[quote] / rates[base]
+            rate_date = date.fromisoformat(day_node.attrib["time"])
+            if rate <= 0:
+                raise ValueError("non-positive ECB rate")
+            return ReferenceQuote(
+                symbol=f"{base}{quote}",
+                rate=rate,
+                rate_date=rate_date,
+                provider="European Central Bank",
+            )
+        except (HTTPError, URLError, TimeoutError, ElementTree.ParseError, KeyError, ValueError, StopIteration) as exc:
+            raise RuntimeError("reference FX rate is temporarily unavailable") from exc
 
     try:
         raw_rate = payload.get("rate")
