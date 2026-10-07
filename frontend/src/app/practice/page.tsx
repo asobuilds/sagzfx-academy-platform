@@ -10,8 +10,8 @@ export default function PracticePage() {
  const [symbol,setSymbol]=useState("EURUSD"),[lot,setLot]=useState("0.10"),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
  async function refresh(){const [a,o,l]=await Promise.all([endpoints.practiceAccount(),endpoints.practiceOrders(),endpoints.practiceLedger()]);setAccount(a);setOrders(o);setLedger(l);}
  useEffect(()=>{void Promise.resolve().then(refresh).catch(()=>setError("Unable to load practice trading."));},[]);
- useEffect(()=>{setQuote(null);void endpoints.practiceQuote(symbol).then(setQuote).catch(()=>setQuote(null));},[symbol]);
- useEffect(()=>{setHistory([]);void endpoints.practiceHistory(symbol).then(setHistory).catch(()=>setHistory([]));},[symbol]);
+ useEffect(()=>{void Promise.resolve().then(()=>endpoints.practiceQuote(symbol)).then(setQuote).catch(()=>setQuote(null));},[symbol]);
+ useEffect(()=>{void Promise.resolve().then(()=>endpoints.practiceHistory(symbol)).then(setHistory).catch(()=>setHistory([]));},[symbol]);
  async function act(fn:()=>Promise<unknown>){setBusy(true);setError(null);try{await fn();await refresh();}catch(e){setError(e instanceof ApiError?String(e.detail):"Practice action failed.");}finally{setBusy(false);}}
  const closed=orders.filter(o=>o.status==="closed"),open=orders.filter(o=>o.status==="open");
  const realized=useMemo(()=>closed.reduce((n,o)=>n+Number(o.realized_pnl??0),0),[closed]);
