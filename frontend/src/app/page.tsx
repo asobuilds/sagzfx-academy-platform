@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import CommunityVoice from "@/components/CommunityVoice";
 
 export default function Home() {
   return (
@@ -322,6 +323,25 @@ export default function Home() {
             </Link>
           </div>
         </div>
+      </section>
+
+
+      <section className="mt-12 bg-slate-950 text-slate-100 px-4 md:px-8 py-24 border-t border-slate-800">
+       <div className="max-w-7xl mx-auto space-y-20">
+        <div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-10">
+         <div><span className="text-cyan-400 text-sm uppercase tracking-[0.25em]">Questions answered</span><h2 className="text-4xl md:text-5xl font-bold mt-3">Frequently asked questions</h2><p className="text-slate-400 mt-4">Clear answers before you choose a learning plan.</p></div>
+         <div className="space-y-3">
+          {[
+           ["How long is the class?","The active class period is one month. Lifetime mentorship remains included after enrollment."],
+           ["What happens to my modules after the month ends?","Modules you actually opened during your active class remain available. Other eligible modules lock after the class period ends."],
+           ["Can registered users use Practice Trading?","Yes. SAGZFX Practice Trading is free for every authenticated account type and uses virtual funds only."],
+           ["Can I learn outside Abuja?","Yes. The academy supports online learning as well as the physical Abuja class."],
+           ["Are practice prices broker execution prices?","No. Practice Trading uses educational reference rates and virtual money; it is not a live brokerage account."]
+          ].map(([q,a])=><details key={q} className="group rounded-2xl border border-slate-800 bg-slate-900/60 p-5"><summary className="cursor-pointer font-semibold text-white">{q}</summary><p className="pt-3 text-sm leading-6 text-slate-400">{a}</p></details>)}
+         </div>
+        </div>
+        <CommunityVoice/>
+       </div>
       </section>
 
       {/* ─── CONTACT ──────────────────────────────────────── */}

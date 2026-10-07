@@ -14,6 +14,7 @@ from app.api.v1.curriculum import router as curriculum_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.practice_trading import router as practice_trading_router
 from app.api.v1.community import router as community_router
+from app.api.v1.feedback import router as feedback_router
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
@@ -85,5 +86,6 @@ app.include_router(curriculum_router, prefix=API)
 app.include_router(payments_router, prefix=API)
 app.include_router(practice_trading_router, prefix=API)
 app.include_router(community_router, prefix=API)
+app.include_router(feedback_router, prefix=API)
 if settings.ENV == "development":
     app.include_router(dev_router, prefix=API)
