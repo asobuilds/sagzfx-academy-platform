@@ -43,15 +43,27 @@ def pair_currencies(symbol: str) -> tuple[str, str]:
 
 def fetch_reference_quote(symbol: str, timeout: float = 5.0) -> ReferenceQuote:
     base, quote = pair_currencies(symbol)
-    url = f"{FRANKFURTER_BASE_URL}/rate/{base.lower()}/{quote.lower()}"
-    try:
-        with urlopen(url, timeout=timeout) as response:
-            payload = json.load(response)
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise RuntimeError("reference FX rate is temporarily unavailable") from exc
+    urls = [
+        f"{FRANKFURTER_BASE_URL}/rate/{base.lower()}/{quote.lower()}",
+        f"{FRANKFURTER_V1_BASE_URL}/latest?base={base}&symbols={quote}",
+    ]
+    payload = None
+    last_error = None
+    for url in urls:
+        try:
+            with urlopen(url, timeout=timeout) as response:
+                payload = json.load(response)
+            break
+        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+            last_error = exc
+    if payload is None:
+        raise RuntimeError("reference FX rate is temporarily unavailable") from last_error
 
     try:
-        rate = Decimal(str(payload["rate"]))
+        raw_rate = payload.get("rate")
+        if raw_rate is None:
+            raw_rate = payload["rates"][quote]
+        rate = Decimal(str(raw_rate))
         rate_date = date.fromisoformat(payload["date"])
     except (KeyError, ValueError, TypeError) as exc:
         raise RuntimeError("reference FX provider returned an invalid response") from exc
