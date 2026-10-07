@@ -279,6 +279,10 @@ export const endpoints = {
       "/api/v1/community/realtime-config",
     ),
 
+  publicReviews: () => api<Array<{review_id:string;full_name:string;rating:number;body:string;created_at:string}>>("/api/v1/feedback/reviews", { auth: false }),
+  submitFeedback: (message:string) => api<{submitted:boolean}>("/api/v1/feedback", {method:"POST",body:{message}}),
+  submitReview: (rating:number,body:string) => api<{submitted:boolean;status:string}>("/api/v1/feedback/reviews", {method:"POST",body:{rating,body}}),
+
   initPayment: (product_slug: string, callback_url: string) =>
     api<{ provider: string; checkout_url: string; reference: string }>(
       "/api/v1/payments/init",
