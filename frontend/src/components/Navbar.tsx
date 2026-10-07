@@ -30,8 +30,8 @@ export default function Navbar() {
 
         {/* Brand */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 group-hover:animate-glow transition">
-            SG
+          <div className="w-12 h-9 rounded-lg brand-gradient flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 group-hover:animate-glow transition">
+            SGFX
           </div>
           <div className="leading-tight hidden sm:block">
             <div className="font-bold text-base tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>

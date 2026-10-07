@@ -10,7 +10,7 @@ export default function PracticePage() {
  const [symbol,setSymbol]=useState("EURUSD"),[lot,setLot]=useState("0.10"),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
  async function refresh(){const [a,o,l]=await Promise.all([endpoints.practiceAccount(),endpoints.practiceOrders(),endpoints.practiceLedger()]);setAccount(a);setOrders(o);setLedger(l);}
  useEffect(()=>{void Promise.resolve().then(refresh).catch(()=>setError("Unable to load practice trading."));},[]);
- useEffect(()=>{void Promise.resolve().then(()=>endpoints.practiceQuote(symbol)).then(setQuote).catch(()=>setQuote(null));},[symbol]);
+ useEffect(()=>{let active=true;const load=()=>void endpoints.practiceQuote(symbol).then(q=>{if(active){setQuote(q);}}).catch(()=>{if(active)setQuote(null);});load();const timer=setInterval(load,30000);return()=>{active=false;clearInterval(timer);};},[symbol]);
  useEffect(()=>{void Promise.resolve().then(()=>endpoints.practiceHistory(symbol)).then(setHistory).catch(()=>setHistory([]));},[symbol]);
  async function act(fn:()=>Promise<unknown>){setBusy(true);setError(null);try{await fn();await refresh();}catch(e){setError(e instanceof ApiError?String(e.detail):"Practice action failed.");}finally{setBusy(false);}}
  const closed=orders.filter(o=>o.status==="closed"),open=orders.filter(o=>o.status==="open");
@@ -22,7 +22,7 @@ export default function PracticePage() {
    <div className="grid grid-cols-2 md:grid-cols-5 gap-4"><Stat label="Balance" value={"USD "+Number(account.balance).toLocaleString()}/><Stat label="Open Positions" value={String(open.length)}/><Stat label="Closed Trades" value={String(closed.length)}/><Stat label="Realized P/L" value={"$"+realized.toFixed(2)}/><Stat label="Win Rate" value={winRate+"%"}/></div>
    <div className="rounded-2xl overflow-hidden border bg-slate-950 text-slate-100" style={{borderColor:"#273244"}}>
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
-          <div><div className="text-xs text-slate-400">SAGZFX PRACTICE · REFERENCE MARKET</div><div className="text-2xl font-bold">{symbol.slice(0,3)}/{symbol.slice(3)} <span className="text-base text-slate-400">{quote?.rate ?? "—"}</span></div></div>
+          <div><div className="text-xs text-slate-400">SAGZFX PRACTICE · MARKET TERMINAL</div><div className="text-2xl font-bold">{symbol.slice(0,3)}/{symbol.slice(3)} <span className="text-base text-slate-300">{quote?.rate ?? "—"}</span>{quote&&history.length>0&&<span className="ml-3 text-xs text-cyan-300">{((Number(quote.rate)-Number(history[history.length-1].rate))*10000).toFixed(1)} pips</span>}</div></div>
           <div className="flex gap-2">{["EURUSD","GBPUSD","AUDUSD"].map(s=><button key={s} onClick={()=>setSymbol(s)} className={`px-3 py-2 rounded-lg text-sm ${symbol===s?"bg-slate-700":"bg-slate-900"}`}>{s.slice(0,3)}/{s.slice(3)}</button>)}</div>
         </div>
         <div className="grid lg:grid-cols-[1fr_280px]">
@@ -34,10 +34,10 @@ export default function PracticePage() {
             <div><div className="text-xs text-slate-400">Virtual balance</div><div className="text-2xl font-bold">${Number(account.balance).toLocaleString()}</div></div>
             <label className="block"><span className="text-xs text-slate-400">Lot size</span><input value={lot} onChange={e=>setLot(e.target.value)} type="number" min="0.01" max="10" step="0.01" className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 p-3 text-white"/></label>
             <div className="grid grid-cols-2 gap-3">
-              <button disabled={busy||!quote} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"sell",lot))} className="py-4 rounded-xl bg-red-600 disabled:opacity-40 font-bold">SELL</button>
-              <button disabled={busy||!quote} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"buy",lot))} className="py-4 rounded-xl bg-emerald-600 disabled:opacity-40 font-bold">BUY</button>
+              <button disabled={busy} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"sell",lot))} className="py-4 rounded-xl bg-red-600 disabled:opacity-40 font-bold">SELL</button>
+              <button disabled={busy} onClick={()=>act(()=>endpoints.openPracticeOrder(symbol,"buy",lot))} className="py-4 rounded-xl bg-emerald-600 disabled:opacity-40 font-bold">BUY</button>
             </div>
-            <div className="text-xs text-slate-400 leading-5">Educational virtual fill at the displayed dated reference rate. Not broker bid/ask or real-time execution.</div>
+            <div className="text-xs text-slate-400 leading-5">{quote?"Practice orders are enabled. Display refreshes every 30 seconds; the free feed may publish only dated reference updates.":"Live display quote unavailable. BUY/SELL still request a fresh server-side execution quote and will show an error if the provider is unavailable."}</div>
           </div>
         </div>
       </div>
