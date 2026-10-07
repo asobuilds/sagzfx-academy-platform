@@ -56,9 +56,7 @@ export default function Home() {
             </h1>
 
             <p className="text-lg md:text-xl leading-relaxed max-w-2xl" style={{ color: "var(--text-secondary)" }}>
-              Learn the right way. Trade with confidence. SAGZFX ACADEMY teaches
-              institutional-grade market structure, smart money concepts, and
-              risk management — from complete beginner to funded trader.
+              Build market understanding before risking capital. SAGZFX ACADEMY is a structured forex education platform that takes students from the foundations of the financial market through market structure, risk management, advanced analysis, guided practice, and long-term mentorship.
             </p>
 
             {/* Ribbon CTA */}
@@ -162,6 +160,20 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="px-4 md:px-8 py-20">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[0.85fr_1.15fr] gap-12 items-start">
+          <div className="space-y-4"><span className="pill pill-blue">More than a course</span><h2 className="text-4xl md:text-5xl font-bold tracking-tight" style={{fontFamily:"var(--font-space-grotesk)"}}>A complete environment for becoming a disciplined market student.</h2><p className="text-lg" style={{color:"var(--text-secondary)"}}>SAGZFX combines structured learning, practical application and continuing mentorship so students are not left with videos alone. The platform is designed to help you understand why markets move, practise decisions without risking real money, track your learning journey and continue receiving guidance beyond the active class period.</p></div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[
+              ["Learn systematically","Progress from forex foundations into market structure, institutional concepts, execution thinking and risk management."],
+              ["Practise safely","Use the free SAGZFX Practice Trading environment with virtual funds before considering real capital."],
+              ["Develop discipline","Build the habit of analysing setups, managing risk and making decisions from a process rather than emotion."],
+              ["Keep growing","Your one-month class is followed by lifetime mentorship, while modules opened during your active period remain part of your learning library."]
+            ].map(([title,body])=><div key={title} className="glass rounded-2xl p-6"><h3 className="font-bold text-xl">{title}</h3><p className="mt-2 text-sm leading-6" style={{color:"var(--text-secondary)"}}>{body}</p></div>)}
+          </div>
+        </div>
+      </section>
+
       {/* ─── WHAT YOU'LL LEARN ────────────────────────────── */}
       <section id="curriculum" className="px-4 md:px-8 py-20">
         <div className="max-w-7xl mx-auto space-y-12">
@@ -245,6 +257,13 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="px-4 md:px-8 py-20">
+       <div className="max-w-7xl mx-auto rounded-3xl bg-slate-950 text-white p-8 md:p-12">
+        <div className="max-w-3xl"><span className="text-cyan-400 text-sm uppercase tracking-[0.2em]">The SAGZFX learning journey</span><h2 className="text-4xl font-bold mt-3">From first principles to independent thinking.</h2><p className="text-slate-400 mt-4">The aim is not to promise quick profits. It is to groom students into informed, risk-aware and disciplined market participants with a repeatable learning and analysis process.</p></div>
+        <div className="grid md:grid-cols-4 gap-4 mt-10">{[["01","Foundation","Understand pairs, sessions, pips, lots, charts and the language of the market."],["02","Structure","Learn how price structure, liquidity, supply and demand and institutional concepts fit together."],["03","Application","Translate knowledge into analysis and practise Buy/Sell decisions using virtual funds."],["04","Mentorship","Continue developing through lifetime mentorship after the active one-month class."]].map(([n,t,d])=><div key={n} className="border border-slate-800 rounded-2xl p-5"><span className="text-cyan-400 text-sm">{n}</span><h3 className="font-bold text-xl mt-3">{t}</h3><p className="text-slate-400 text-sm leading-6 mt-2">{d}</p></div>)}</div>
+       </div>
+      </section>
+
       {/* ─── CAMPUS & ONLINE ──────────────────────────────── */}
       <section id="campus" className="px-4 md:px-8 py-20">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -292,6 +311,13 @@ export default function Home() {
           </div>
 
         </div>
+      </section>
+
+      <section className="px-4 md:px-8 py-20">
+       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
+        <div className="glass-strong rounded-3xl p-8 md:p-10"><span className="pill pill-green">Professional standard</span><h2 className="text-3xl md:text-4xl font-bold mt-5">Education before speculation.</h2><p className="mt-4 leading-7" style={{color:"var(--text-secondary)"}}>SAGZFX is built around market literacy, risk awareness and repeatable process. Students learn to read the market, document a view, test decisions with virtual funds and understand that responsible trading starts with protecting capital—not chasing guaranteed returns.</p></div>
+        <div className="glass-strong rounded-3xl p-8 md:p-10"><span className="pill pill-blue">Who it is for</span><h2 className="text-3xl md:text-4xl font-bold mt-5">Start where you are. Grow with structure.</h2><p className="mt-4 leading-7" style={{color:"var(--text-secondary)"}}>Complete beginners can start with the language and mechanics of forex, while developing learners progress into market structure and advanced concepts. Masters students receive the broadest curriculum, and every authenticated learner can practise with virtual funds.</p></div>
+       </div>
       </section>
 
       {/* ─── FINAL CTA ────────────────────────────────────── */}
