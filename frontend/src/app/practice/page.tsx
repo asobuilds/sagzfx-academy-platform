@@ -10,7 +10,8 @@ export default function PracticePage() {
  const [symbol,setSymbol]=useState("EURUSD"),[lot,setLot]=useState("0.10"),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
  async function refresh(){const [a,o,l]=await Promise.all([endpoints.practiceAccount(),endpoints.practiceOrders(),endpoints.practiceLedger()]);setAccount(a);setOrders(o);setLedger(l);}
  useEffect(()=>{void Promise.resolve().then(refresh).catch(()=>setError("Unable to load practice trading."));},[]);
- useEffect(()=>{void Promise.all([endpoints.practiceQuote(symbol),endpoints.practiceHistory(symbol)]).then(([q,h])=>{setQuote(q);setHistory(h);}).catch(()=>{setQuote(null);setHistory([]);});},[symbol]);
+ useEffect(()=>{setQuote(null);void endpoints.practiceQuote(symbol).then(setQuote).catch(()=>setQuote(null));},[symbol]);
+ useEffect(()=>{setHistory([]);void endpoints.practiceHistory(symbol).then(setHistory).catch(()=>setHistory([]));},[symbol]);
  async function act(fn:()=>Promise<unknown>){setBusy(true);setError(null);try{await fn();await refresh();}catch(e){setError(e instanceof ApiError?String(e.detail):"Practice action failed.");}finally{setBusy(false);}}
  const closed=orders.filter(o=>o.status==="closed"),open=orders.filter(o=>o.status==="open");
  const realized=useMemo(()=>closed.reduce((n,o)=>n+Number(o.realized_pnl??0),0),[closed]);
@@ -26,7 +27,7 @@ export default function PracticePage() {
         </div>
         <div className="grid lg:grid-cols-[1fr_280px]">
           <div className="p-4 min-w-0">
-            <div className="flex gap-2 mb-3 text-xs text-slate-400"><span>1D reference candles</span><span>·</span><span>{quote?.provider ?? "Reference feed"}</span><span>·</span><span>{quote?.rate_date ?? "—"}</span></div>
+            <div className="flex gap-2 mb-3 text-xs text-slate-400"><span>1D reference chart</span><span>·</span><span>{quote?.provider ?? "Reference feed"}</span><span>·</span><span>{quote?.rate_date ?? "—"}</span></div>
             <MarketChart points={history}/>
           </div>
           <div className="border-t lg:border-t-0 lg:border-l border-slate-800 p-5 space-y-5">
