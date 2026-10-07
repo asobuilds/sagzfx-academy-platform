@@ -2,15 +2,15 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-24 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+    <footer className="border-t border-slate-800 bg-slate-950 text-slate-200">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
 
           {/* Brand column */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg brand-gradient flex items-center justify-center font-bold text-white">
-                SG
+              <div className="w-12 h-10 rounded-lg brand-gradient flex items-center justify-center font-bold text-white">
+                SGFX
               </div>
               <div>
                 <div className="font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
