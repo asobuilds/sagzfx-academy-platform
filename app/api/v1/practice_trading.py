@@ -281,6 +281,6 @@ async def get_reference_quote(
         "provider": quote.provider,
         "price_type": quote.price_type,
         "realtime": quote.realtime,
-        "execution_enabled": False,
+        "execution_enabled": True,
         "disclaimer": "Educational reference rate only; not a broker bid/ask or real-time execution price.",
     }
