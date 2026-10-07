@@ -313,6 +313,13 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="px-4 md:px-8 py-20">
+       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
+        <div className="glass-strong rounded-3xl p-8 md:p-10"><span className="pill pill-green">Professional standard</span><h2 className="text-3xl md:text-4xl font-bold mt-5">Education before speculation.</h2><p className="mt-4 leading-7" style={{color:"var(--text-secondary)"}}>SAGZFX is built around market literacy, risk awareness and repeatable process. Students learn to read the market, document a view, test decisions with virtual funds and understand that responsible trading starts with protecting capital—not chasing guaranteed returns.</p></div>
+        <div className="glass-strong rounded-3xl p-8 md:p-10"><span className="pill pill-blue">Who it is for</span><h2 className="text-3xl md:text-4xl font-bold mt-5">Start where you are. Grow with structure.</h2><p className="mt-4 leading-7" style={{color:"var(--text-secondary)"}}>Complete beginners can start with the language and mechanics of forex, while developing learners progress into market structure and advanced concepts. Masters students receive the broadest curriculum, and every authenticated learner can practise with virtual funds.</p></div>
+       </div>
+      </section>
+
       {/* ─── FINAL CTA ────────────────────────────────────── */}
       <section className="px-4 md:px-8 py-24">
         <div className="max-w-4xl mx-auto glass-strong rounded-3xl p-12 text-center space-y-6 animate-glow">
