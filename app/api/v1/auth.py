@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
@@ -30,20 +31,35 @@ from app.schemas.auth import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
-    cookie_options = {
+def _cookie_options() -> dict:
+    """
+    Flags for the auth cookies, driven by COOKIE_SECURE.
+
+    Production serves the frontend and API from different sites, so the
+    cookies need SameSite=None - and browsers reject SameSite=None unless
+    the cookie is also Secure. Local development runs over plain http://,
+    where Secure cookies are dropped, so COOKIE_SECURE=false downgrades
+    both flags together to the valid SameSite=Lax pair.
+    """
+    secure = settings.COOKIE_SECURE
+    return {
         "httponly": True,
-        "secure": True,
-        "samesite": "none",
+        "secure": secure,
+        "samesite": "none" if secure else "lax",
         "path": "/",
     }
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    cookie_options = _cookie_options()
     response.set_cookie("sagzfx_access", access_token, **cookie_options)
     response.set_cookie("sagzfx_refresh", refresh_token, **cookie_options)
 
 
 def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie("sagzfx_access", path="/", samesite="none", secure=True, httponly=True)
-    response.delete_cookie("sagzfx_refresh", path="/", samesite="none", secure=True, httponly=True)
+    cookie_options = _cookie_options()
+    response.delete_cookie("sagzfx_access", **cookie_options)
+    response.delete_cookie("sagzfx_refresh", **cookie_options)
 
 
 

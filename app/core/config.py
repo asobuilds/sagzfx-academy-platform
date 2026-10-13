@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     # Browser origins allowed to call the API in production.
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    # Auth cookie flags. Secure cookies are only transmitted over HTTPS, so
+    # browsers silently drop them over plain http:// and the session never
+    # sticks. Keep True in production; set COOKIE_SECURE=false in .env for
+    # local development. SameSite is derived from this flag (see auth.py).
+    COOKIE_SECURE: bool = True
+
     # Exness
     EXNESS_IB_LINK: str = "https://one.exnessonelink.com/a/ut6xqvmg34"
     MT5_BRIDGE_MODE: str = "disabled"

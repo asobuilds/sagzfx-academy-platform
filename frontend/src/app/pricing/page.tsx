@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ApiError, endpoints, getToken } from "@/lib/api";
+import { ApiError, endpoints } from "@/lib/api";
 
 const plans = [
   { slug: "beginner", name: "Beginner", price: "₦150,000", access: "12 Beginner modules" },
@@ -15,10 +15,6 @@ export default function PricingPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function checkout(slug: string) {
-    if (!getToken()) {
-      window.location.assign("/login?next=/pricing");
-      return;
-    }
     setBusy(slug);
     setError(null);
     try {
@@ -26,6 +22,11 @@ export default function PricingPage() {
       const result = await endpoints.initPayment(slug, callback);
       window.location.assign(result.checkout_url);
     } catch (err) {
+      // Auth is cookie-only: the API's 401 is the gate, not a local check.
+      if (err instanceof ApiError && err.status === 401) {
+        window.location.assign("/login?next=/pricing");
+        return;
+      }
       setError(err instanceof ApiError ? String(err.detail) : "Unable to start payment.");
       setBusy(null);
     }

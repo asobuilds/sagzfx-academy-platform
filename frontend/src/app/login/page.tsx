@@ -19,11 +19,21 @@ export default function LoginPage() {
 
     try {
       await endpoints.login(email, password);
+      // Cookies are now set. Verify session, then redirect.
+      await endpoints.me();
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(typeof err.detail === "string" ? err.detail : "Invalid login.");
+        if (err.status === 401) {
+          setError("Invalid email or password.");
+        } else if (err.status === 422) {
+          setError("Please enter a valid email and password.");
+        } else if (typeof err.detail === "string") {
+          setError(err.detail);
+        } else {
+          setError("Login failed. Please try again.");
+        }
       } else {
         setError("Network error. Is the backend running?");
       }
@@ -35,7 +45,6 @@ export default function LoginPage() {
   return (
     <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-md space-y-8">
-
         {/* Header */}
         <div className="text-center space-y-3">
           <div className="inline-flex w-14 h-14 rounded-2xl brand-gradient items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-500/20">
@@ -64,7 +73,10 @@ export default function LoginPage() {
           )}
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            <label
+              className="text-xs uppercase tracking-wider"
+              style={{ color: "var(--text-muted)" }}
+            >
               Email
             </label>
             <input
@@ -74,12 +86,18 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className="w-full px-4 py-3 rounded-xl bg-black/30 border outline-none focus:border-cyan-500/60 transition text-sm"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+              style={{
+                borderColor: "var(--border-subtle)",
+                color: "var(--text-primary)",
+              }}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            <label
+              className="text-xs uppercase tracking-wider"
+              style={{ color: "var(--text-muted)" }}
+            >
               Password
             </label>
             <input
@@ -89,7 +107,10 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full px-4 py-3 rounded-xl bg-black/30 border outline-none focus:border-cyan-500/60 transition text-sm"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+              style={{
+                borderColor: "var(--border-subtle)",
+                color: "var(--text-primary)",
+              }}
             />
           </div>
 
@@ -101,14 +122,19 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
 
-          <p className="text-center text-sm pt-2" style={{ color: "var(--text-secondary)" }}>
+          <p
+            className="text-center text-sm pt-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-cyan-700 hover:text-cyan-800 font-medium">
+            <Link
+              href="/register"
+              className="text-cyan-400 hover:text-cyan-300 font-medium"
+            >
               Create one
             </Link>
           </p>
         </form>
-
       </div>
     </section>
   );

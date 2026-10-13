@@ -5,21 +5,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   endpoints,
+  clearTokens,
   ApiError,
   type User,
   type CatalogResponse,
   type ModuleSummary,
 } from "@/lib/api";
-
-type PracticeAccount = {
-  account_id: string;
-  starting_balance: string;
-  balance: string;
-  currency: string;
-  status: string;
-  reset_count: number;
-  execution_enabled: boolean;
-};
 
 type RealtimeConfig = {
   supabase_url: string | null;
@@ -28,32 +19,41 @@ type RealtimeConfig = {
   access_tier: string;
 };
 
+type MT5Status = {
+  bound: boolean;
+  login: string | null;
+  server: string | null;
+  exness_ib_link: string;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
-  const [practice, setPractice] = useState<PracticeAccount | null>(null);
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
+  const [mt5, setMt5] = useState<MT5Status | null>(null);
   const [loading, setLoading] = useState(true);
-  const [creatingPractice, setCreatingPractice] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Auth is cookie-only: `me()` is the source of truth. A 401 below is
+    // what sends an unauthenticated visitor to /login (see the catch).
     Promise.all([
       endpoints.me(),
       endpoints.catalog(),
-      endpoints.practiceAccount(),
       endpoints.realtimeConfig(),
+      endpoints.mt5Status(),
     ])
-      .then(([u, c, p, r]) => {
+      .then(([u, c, r, m]) => {
         setUser(u);
         setCatalog(c);
-        setPractice(p);
         setRealtime(r);
+        setMt5(m);
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
+          clearTokens();
           router.push("/login");
           return;
         }
@@ -62,19 +62,7 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  async function createPracticeAccount() {
-    setCreatingPractice(true);
-    setError(null);
-    try {
-      setPractice(await endpoints.createPracticeAccount());
-    } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Unable to create practice account.");
-    } finally {
-      setCreatingPractice(false);
-    }
-  }
-
-  // ─── Loading state ─────────────────────────────────────
+  // ─── Loading ────────────────────────────────────────────
   if (loading) {
     return (
       <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -85,8 +73,8 @@ export default function DashboardPage() {
     );
   }
 
-  // ─── Error state ───────────────────────────────────────
-  if (error || !user || !catalog || !realtime) {
+  // ─── Error ──────────────────────────────────────────────
+  if (error || !user || !catalog || !realtime || !mt5) {
     return (
       <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
         <div className="glass-strong rounded-2xl p-8 max-w-md text-center space-y-4">
@@ -104,10 +92,23 @@ export default function DashboardPage() {
   }
 
   const tier = catalog.access_tier;
-  const tierPill = tier === "masters" ? "pill-gold" : tier === "advanced" ? "pill-blue" : tier === "beginner" ? "pill-green" : "pill-red";
-  const tierLabel = tier === "masters" ? "Masters & One-on-One" : tier === "advanced" ? "Advanced Student" : tier === "beginner" ? "Beginner Student" : "Registered Account";
+  const tierPill =
+    tier === "masters"
+      ? "pill-gold"
+      : tier === "advanced"
+        ? "pill-blue"
+        : tier === "beginner"
+          ? "pill-green"
+          : "pill-red";
+  const tierLabel =
+    tier === "masters"
+      ? "Masters & One-on-One"
+      : tier === "advanced"
+        ? "Advanced Student"
+        : tier === "beginner"
+          ? "Beginner Student"
+          : "Registered Account";
 
-  // Group modules by tier_level
   const modulesByTier = catalog.modules.reduce<Record<string, ModuleSummary[]>>(
     (acc, m) => {
       (acc[m.tier_level] ||= []).push(m);
@@ -118,7 +119,6 @@ export default function DashboardPage() {
 
   return (
     <section className="px-4 md:px-8 py-12 max-w-7xl mx-auto space-y-12">
-
       {/* ─── Welcome header ──────────────────────────────── */}
       <div className="glass-strong rounded-3xl p-8 md:p-10 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -133,15 +133,13 @@ export default function DashboardPage() {
                 {user.full_name.split(" ")[0]}
               </span>
             </h1>
-            <p style={{ color: "var(--text-secondary)" }}>
-              {user.email}
-            </p>
+            <p style={{ color: "var(--text-secondary)" }}>{user.email}</p>
           </div>
 
           {tier !== "masters" && (
             <Link
               href="/pricing"
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-500/20"
+              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40"
             >
               {tier === "registered" ? "Choose a class →" : "Upgrade →"}
             </Link>
@@ -150,60 +148,88 @@ export default function DashboardPage() {
 
         {/* Progress strip */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-4">
-          <StatBox label="Modules Unlocked" value={`${catalog.unlocked_count} / ${catalog.total}`} />
+          <StatBox
+            label="Modules Unlocked"
+            value={`${catalog.unlocked_count} / ${catalog.total}`}
+          />
           <StatBox label="Community" value={realtime.channel} mono />
           <StatBox
-            label="Practice"
-            value={practice ? `${practice.currency} ${Number(practice.balance).toLocaleString()}` : "Not activated"}
+            label="MT5 Demo"
+            value={mt5.bound ? (mt5.login ?? "Bound") : "Not activated"}
+            mono={mt5.bound}
           />
           <StatBox label="Plan" value={tier.toUpperCase()} />
-          <StatBox label="Class Ends" value={user.class_expires_at ? new Date(user.class_expires_at).toLocaleDateString() : "Not active"} />
-          <StatBox label="Mentorship" value={user.mentorship_lifetime ? "Lifetime" : "Not active"} />
+          <StatBox
+            label="Class Ends"
+            value={
+              user.class_expires_at
+                ? new Date(user.class_expires_at).toLocaleDateString()
+                : "Not active"
+            }
+          />
+          <StatBox
+            label="Mentorship"
+            value={user.mentorship_lifetime ? "Lifetime" : "Not active"}
+          />
         </div>
       </div>
 
-      {/* ─── Practice Trading Card ─────────────────────── */}
+      {/* ─── MT5 Card ────────────────────────────────────── */}
       <div className="glass hover-lift rounded-3xl p-8 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center font-bold text-white">FX</div>
+            <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center font-bold text-white">
+              MT5
+            </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                SAGZFX Practice Trading
+              <h2
+                className="text-2xl font-bold tracking-tight"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
+              >
+                Exness Demo Sandbox
               </h2>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Free virtual-money practice account for every registered SAGZFX user.
+                Risk-free environment linked to live market feeds
               </p>
             </div>
           </div>
-          {practice ? (
-            <span className="pill pill-green">Active</span>
+
+          {mt5.bound ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="pill pill-green">Active</span>
+              <span className="font-mono text-sm glass px-3 py-1.5 rounded-lg">
+                {mt5.login}
+              </span>
+            </div>
           ) : (
-            <button type="button" onClick={createPracticeAccount} disabled={creatingPractice}
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift disabled:opacity-50">
-              {creatingPractice ? "Creating…" : "Activate Free Practice Account"}
-            </button>
+            <span className="pill pill-blue">Available</span>
           )}
         </div>
 
-        {practice && (<>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatBox label="Virtual Balance" value={`${practice.currency} ${Number(practice.balance).toLocaleString()}`} />
-            <StatBox label="Starting Balance" value={`${practice.currency} ${Number(practice.starting_balance).toLocaleString()}`} />
-            <StatBox label="Status" value={practice.status.toUpperCase()} />
-            <StatBox label="Trading" value={practice.execution_enabled ? "Enabled" : "Market feed pending"} />
-          </div>
-          <Link href="/practice" className="inline-block px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift">Open Practice Trading Workspace →</Link>
-        </>)}
-
-        <div className="rounded-2xl p-4 border" style={{ background: "rgba(241, 245, 249, 0.9)", borderColor: "var(--border-subtle)" }}>
-          <p className="text-sm font-semibold">Ready for a real Exness account?</p>
-          <a href="https://one.exnessonelink.com/a/ut6xqvmg34" target="_blank" rel="noopener noreferrer"
-            className="text-cyan-700 hover:text-cyan-800 font-semibold text-sm">
-            Open Exness through SAGZFX →
+        <div
+          className="rounded-2xl p-4 border"
+          style={{
+            background: "rgba(5, 11, 20, 0.6)",
+            borderColor: "var(--border-subtle)",
+          }}
+        >
+          <p
+            className="text-xs uppercase tracking-wider mb-2"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Exness Partner Link
+          </p>
+          <a
+            href={mt5.exness_ib_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-400 hover:text-cyan-300 font-mono text-sm break-all"
+          >
+            {mt5.exness_ib_link}
           </a>
           <p className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-            Exness registration is separate from the SAGZFX virtual practice account.
+            Open a live Exness account via this link to keep your learning
+            progress and unlock live-market tools.
           </p>
         </div>
       </div>
@@ -232,7 +258,10 @@ export default function DashboardPage() {
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
               {tierName}{" "}
-              <span className="text-xs font-normal" style={{ color: "var(--text-muted)" }}>
+              <span
+                className="text-xs font-normal"
+                style={{ color: "var(--text-muted)" }}
+              >
                 · {modules.length} modules
               </span>
             </h3>
@@ -245,17 +274,27 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
-
     </section>
   );
 }
 
 // ─── Sub-components ─────────────────────────────────────
 
-function StatBox({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function StatBox({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div className="glass rounded-xl p-4 space-y-1">
-      <div className="text-xs uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+      <div
+        className="text-xs uppercase tracking-wider"
+        style={{ color: "var(--text-muted)" }}
+      >
         {label}
       </div>
       <div className={`text-lg font-bold ${mono ? "font-mono text-base" : ""}`}>
@@ -268,43 +307,46 @@ function StatBox({ label, value, mono = false }: { label: string; value: string;
 function ModuleCard({ module }: { module: ModuleSummary }) {
   const isLocked = !module.unlocked;
 
-  return (
-    <div className="relative">
-      {isLocked ? (
-        <div className="glass rounded-2xl p-5 space-y-3 relative overflow-hidden opacity-75">
+  if (isLocked) {
+    return (
+      <div className="glass rounded-2xl p-5 space-y-3 opacity-60 cursor-not-allowed">
+        <div className="flex items-center justify-between">
+          <span
+            className="text-xs font-mono"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {module.module_id}
+          </span>
+          <span className="pill pill-red">🔒 Locked</span>
+        </div>
+        <h4 className="text-base font-semibold leading-snug opacity-70">
+          {module.title}
+        </h4>
+        <div className="h-1 rounded-full bg-black/40 overflow-hidden">
+          <div className="h-full bg-slate-700" style={{ width: "0%" }} />
+        </div>
+      </div>
+    );
+  }
 
-      {/* Tier tag */}
+  return (
+    <Link
+      href={`/module/${module.module_id}`}
+      className="block glass rounded-2xl p-5 space-y-3 hover-lift cursor-pointer"
+    >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+        <span
+          className="text-xs font-mono"
+          style={{ color: "var(--text-muted)" }}
+        >
           {module.module_id}
         </span>
-        {isLocked ? (
-          <span className="pill pill-red">🔒 Locked</span>
-        ) : (
-          <span className="pill pill-green">Open</span>
-        )}
+        <span className="pill pill-green">Open</span>
       </div>
-
-      <h4
-        className={`text-base font-semibold leading-snug ${isLocked ? "opacity-70" : ""}`}
-      >
-        {module.title}
-      </h4>
-
-      <div className="h-1 rounded-full bg-black/40 overflow-hidden">
-        <div className="h-full bg-slate-400" style={{ width: "0%" }} />
-      </div>
-        </div>
-      ) : (
-        <Link href={`/module/${module.module_id}`} className="block glass rounded-2xl p-5 space-y-3 hover-lift">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{module.module_id}</span>
-            <span className="pill pill-green">Open</span>
-          </div>
-          <h4 className="text-base font-semibold leading-snug">{module.title}</h4>
-          <span className="text-sm text-cyan-700 font-semibold">Open module →</span>
-        </Link>
-      )}
-    </div>
+      <h4 className="text-base font-semibold leading-snug">{module.title}</h4>
+      <span className="text-sm text-cyan-400 font-semibold">
+        Open module →
+      </span>
+    </Link>
   );
 }

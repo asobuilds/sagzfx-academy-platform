@@ -1,25 +1,32 @@
 /**
- * SAGZFX ACADEMY - API client
- * Typed wrapper around the FastAPI backend.
+ * SAGZFX ACADEMY - API client.
+ *
+ * Auth model: cookie-only.
+ *   - The backend sets HttpOnly cookies named `sagzfx_access` and `sagzfx_refresh`.
+ *   - Every request sends `credentials: "include"` so cookies travel with them.
+ *   - The frontend NEVER stores tokens in localStorage.
+ *   - To know if the user is logged in, call `me()`. A 200 means yes, a 401 means no.
  */
 
+// The fallback must be `localhost`, NOT `127.0.0.1`: the session cookie is
+// SameSite=Lax, and browsers ignore the port when computing "same site". A
+// page on localhost:3000 calling localhost:8000 is same-site (cookie sent);
+// calling 127.0.0.1:8000 is cross-site (cookie dropped -> 401 on /auth/me).
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// ─── Auth storage ──────────────────────────────────────────
+// ─── Deprecated token helpers (kept for compatibility) ─────
 
-// Browser authentication is carried by Secure HttpOnly cookies.
-// These compatibility helpers intentionally never persist JWTs in Web Storage.
 export function getToken(): string | null {
   return null;
 }
 
-export function setTokens(_access: string, _refresh: string): void {
-  // Cookies are issued by the backend login response.
+export function clearTokens(): void {
+  // no-op — cookies are cleared by the backend on logout
 }
 
-export function clearTokens(): void {
-  // Cookies are cleared by POST /auth/logout.
+export function setTokens(_access: string, _refresh: string): void {
+  // no-op
 }
 
 // ─── Fetch wrapper ─────────────────────────────────────────
@@ -37,15 +44,15 @@ export class ApiError extends Error {
 type ApiOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
-  auth?: boolean;   // attach Bearer token
-  form?: boolean;   // send as application/x-www-form-urlencoded
+  auth?: boolean;
+  form?: boolean;
 };
 
 export async function api<T = unknown>(
   path: string,
   opts: ApiOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, auth = true, form = false } = opts;
+  const { method = "GET", body, form = false } = opts;
 
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -67,15 +74,14 @@ export async function api<T = unknown>(
     }
   }
 
-
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
 
   const res = await fetch(url, {
     method,
     headers,
     body: payload,
+    credentials: "include", // ← cookies travel with every request
     cache: "no-store",
-    credentials: "include",
   });
 
   const contentType = res.headers.get("content-type") ?? "";
@@ -102,18 +108,11 @@ export type User = {
   email: string;
   role: string;
   has_paid_tuition: boolean;
-  learning_plan: "registered" | "beginner" | "advanced" | "masters";
-  class_started_at: string | null;
-  class_expires_at: string | null;
-  mentorship_lifetime: boolean;
+  learning_plan?: string;
+  class_expires_at?: string | null;
+  mentorship_lifetime?: boolean;
   exness_demo_account_number: string | null;
   created_at: string;
-};
-
-export type TokenPair = {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
 };
 
 export type ModuleSummary = {
@@ -123,6 +122,21 @@ export type ModuleSummary = {
   sort_order: number;
   is_premium_locked: boolean;
   unlocked: boolean;
+};
+
+export type ModuleDetail = ModuleSummary & {
+  video_url_slug: string | null;
+  lesson_body: string | null;
+  learning_outcomes: string[];
+  assignment: string | null;
+  checkpoint_questions: {
+    prompt: string;
+    options: string[];
+    correct_index: number;
+    explanation: string;
+  } | null;
+  estimated_minutes: number | null;
+  lesson_status: string | null;
 };
 
 export type CatalogResponse = {
@@ -142,10 +156,50 @@ export type BrandInfo = {
   exness_ib_link: string;
 };
 
+export type PracticeAccount = {
+  account_id: string;
+  starting_balance: string;
+  balance: string;
+  currency: string;
+  status: string;
+  reset_count: number;
+  execution_enabled: boolean;
+};
+
+export type PracticeOrder = {
+  order_id: string;
+  symbol: string;
+  side: "buy" | "sell";
+  lot_size: string;
+  entry_price: string;
+  opened_at: string;
+  status: string;
+};
+
+export type LedgerEntry = {
+  entry_id: string;
+  kind: string;
+  amount: string;
+  balance_after: string;
+  created_at: string;
+  note: string | null;
+};
+
+export type PublicReview = {
+  review_id: string;
+  full_name: string;
+  rating: number;
+  body: string;
+};
+
 // ─── Endpoint helpers ──────────────────────────────────────
 
 export const endpoints = {
+  // ─── Public / brand ──────────────────────────────────────
+
   brand: () => api<BrandInfo>("/api/v1/brand", { auth: false }),
+
+  // ─── Auth ────────────────────────────────────────────────
 
   register: (full_name: string, email: string, password: string) =>
     api<User>("/api/v1/auth/register", {
@@ -161,131 +215,96 @@ export const endpoints = {
       auth: false,
     }),
 
+  logout: () => api<void>("/api/v1/auth/logout", { method: "POST" }),
+
   me: () => api<User>("/api/v1/auth/me"),
 
-  logout: () => api<void>("/api/v1/auth/logout", { method: "POST" }),
+  // ─── Curriculum ──────────────────────────────────────────
 
   catalog: () => api<CatalogResponse>("/api/v1/curriculum/modules"),
 
-  module: (module_id: string) => api<ModuleSummary & { video_url_slug: string | null }>(`/api/v1/curriculum/modules/${module_id}`),
+  module: (module_id: string) =>
+    api<ModuleDetail>(`/api/v1/curriculum/modules/${module_id}`),
 
-  practiceAccount: () =>
+  // ─── MT5 / Exness ────────────────────────────────────────
+
+  mt5Status: () =>
     api<{
-      account_id: string;
-      starting_balance: string;
-      balance: string;
-      currency: string;
-      status: string;
-      reset_count: number;
-      execution_enabled: boolean;
-    } | null>("/api/v1/practice-trading/account"),
+      bound: boolean;
+      login: string | null;
+      server: string | null;
+      exness_ib_link: string;
+    }>("/api/v1/mt5-demo/status"),
 
-  createPracticeAccount: () =>
-    api<{
-      account_id: string;
-      starting_balance: string;
-      balance: string;
-      currency: string;
-      status: string;
-      reset_count: number;
-      execution_enabled: boolean;
-    }>("/api/v1/practice-trading/account", { method: "POST" }),
-
-  resetPracticeAccount: () =>
-    api<{
-      account_id: string;
-      starting_balance: string;
-      balance: string;
-      currency: string;
-      status: string;
-      reset_count: number;
-      execution_enabled: boolean;
-    }>("/api/v1/practice-trading/account/reset", { method: "POST" }),
-
-  practiceLedger: () =>
-    api<Array<{
-      entry_id: string;
-      entry_type: string;
-      amount: string;
-      balance_after: string;
-      reference_type: string | null;
-      reference_id: string | null;
-      note: string | null;
-      created_at: string;
-    }>>("/api/v1/practice-trading/ledger"),
-
-  practiceHistory: (symbol: string) =>
-    api<Array<{ date: string; rate: number }>>(`/api/v1/practice-trading/history/${symbol}`),
-
-  practiceQuote: (symbol: string) =>
-    api<{
-      symbol: string;
-      rate: string;
-      rate_date: string;
-      provider: string;
-      price_type: string;
-      realtime: boolean;
-      execution_enabled: boolean;
-      disclaimer: string;
-    }>(`/api/v1/practice-trading/quote/${symbol}`),
-
-  openPracticeOrder: (symbol: string, side: "buy" | "sell", lot_size: string) =>
-    api<{
-      order_id: string;
-      symbol: string;
-      side: string;
-      order_type: string;
-      lot_size: string;
-      status: string;
-      fill_price: string | null;
-      close_price: string | null;
-      realized_pnl: string | null;
-      quote_date: string | null;
-      created_at: string;
-    }>("/api/v1/practice-trading/orders", { method: "POST", body: { symbol, side, lot_size } }),
-
-  closePracticeOrder: (orderId: string) =>
-    api<{
-      order_id: string;
-      symbol: string;
-      side: string;
-      order_type: string;
-      lot_size: string;
-      status: string;
-      fill_price: string | null;
-      close_price: string | null;
-      realized_pnl: string | null;
-      quote_date: string | null;
-      created_at: string;
-    }>(`/api/v1/practice-trading/orders/${orderId}/close`, { method: "POST" }),
-
-  practiceOrders: () =>
-    api<Array<{
-      order_id: string;
-      symbol: string;
-      side: string;
-      order_type: string;
-      lot_size: string;
-      status: string;
-      fill_price: string | null;
-      close_price: string | null;
-      realized_pnl: string | null;
-      quote_date: string | null;
-      created_at: string;
-    }>>("/api/v1/practice-trading/orders"),
+  // ─── Community realtime ──────────────────────────────────
 
   realtimeConfig: () =>
-    api<{ supabase_url: string | null; supabase_anon_key: string | null; channel: string; access_tier: string }>(
-      "/api/v1/community/realtime-config",
-    ),
+    api<{
+      supabase_url: string | null;
+      supabase_anon_key: string | null;
+      channel: string;
+      access_tier: string;
+    }>("/api/v1/community/realtime-config"),
 
-  publicReviews: () => api<Array<{review_id:string;full_name:string;rating:number;body:string;created_at:string}>>("/api/v1/feedback/reviews", { auth: false }),
-  submitFeedback: (message:string) => api<{submitted:boolean}>("/api/v1/feedback", {method:"POST",body:{message}}),
-  submitReview: (rating:number,body:string) => api<{submitted:boolean;status:string}>("/api/v1/feedback/reviews", {method:"POST",body:{rating,body}}),
+  // ─── Payments ────────────────────────────────────────────
 
   initPayment: (product_slug: string, callback_url: string) =>
     api<{ provider: string; checkout_url: string; reference: string }>(
       "/api/v1/payments/init",
       { method: "POST", body: { product_slug, callback_url } },
     ),
+
+  // ─── Practice Trading ────────────────────────────────────
+
+  practiceAccount: () =>
+    api<PracticeAccount | null>("/api/v1/practice-trading/account"),
+
+  createPracticeAccount: () =>
+    api<PracticeAccount>("/api/v1/practice-trading/account", {
+      method: "POST",
+    }),
+
+  resetPracticeAccount: () =>
+    api("/api/v1/practice-trading/account/reset", { method: "POST" }),
+
+  practiceOrders: () =>
+    api<PracticeOrder[]>("/api/v1/practice-trading/orders"),
+
+  openPracticeOrder: (symbol: string, side: "buy" | "sell", lot_size: number) =>
+    api<PracticeOrder>("/api/v1/practice-trading/orders", {
+      method: "POST",
+      body: { symbol, side, lot_size },
+    }),
+
+  closePracticeOrder: (order_id: string) =>
+    api(`/api/v1/practice-trading/orders/${order_id}/close`, {
+      method: "POST",
+    }),
+
+  practiceLedger: () =>
+    api<LedgerEntry[]>("/api/v1/practice-trading/ledger"),
+
+  practiceQuote: (symbol: string) =>
+    api<{ symbol: string; bid: string; ask: string; ts: string }>(
+      `/api/v1/practice-trading/quote/${symbol}`,
+    ),
+
+  practiceHistory: (symbol: string) =>
+    api<Array<{ ts: string; price: string }>>(
+      `/api/v1/practice-trading/history/${symbol}`,
+    ),
+
+  // ─── Community Voice ─────────────────────────────────────
+
+  publicReviews: () =>
+    api<PublicReview[]>("/api/v1/feedback/reviews", { auth: false }),
+
+  submitReview: (rating: number, body: string) =>
+    api("/api/v1/feedback/reviews", {
+      method: "POST",
+      body: { rating, body },
+    }),
+
+  submitFeedback: (message: string) =>
+    api("/api/v1/feedback", { method: "POST", body: { message } }),
 };
