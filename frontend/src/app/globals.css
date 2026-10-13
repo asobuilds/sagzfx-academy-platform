@@ -1,22 +1,23 @@
 @import "tailwindcss";
 
 /* ─── SAGZFX ACADEMY - Design System ─────────────────────────────
-   Colors extracted from the client's physical flyer.
-   Light-first neutral base + brand blue + signal green + accent cyan + gold.
-   ──────────────────────────────────────────────────────────── */
+   Dark navy base. Readable body text. Glass surfaces that work on
+   every background. Colors lifted from the client's physical flyer.
+   ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* Base layers */
-  --bg-base: #F8FAFC;
-  --bg-elevated: #FFFFFF;
-  --bg-glass: rgba(255, 255, 255, 0.78);
-  --bg-glass-strong: rgba(255, 255, 255, 0.94);
+  /* ─── Base layers ─────────────────────────────────────────── */
+  --bg-base: #050B14;         /* page background, deep navy */
+  --bg-elevated: #0A1424;     /* slightly lighter */
+  --bg-glass: rgba(15, 30, 51, 0.55);
+  --bg-glass-strong: rgba(15, 30, 51, 0.85);
+  --bg-card-light: #F1F5F9;   /* solid light card surface */
 
-  /* Border */
-  --border-subtle: rgba(15, 23, 42, 0.10);
-  --border-strong: rgba(37, 99, 235, 0.28);
+  /* ─── Borders ─────────────────────────────────────────────── */
+  --border-subtle: rgba(80, 130, 200, 0.15);
+  --border-strong: rgba(96, 165, 250, 0.35);
 
-  /* Brand palette (from flyer) */
+  /* ─── Brand palette ───────────────────────────────────────── */
   --brand-blue: #1E40AF;
   --brand-blue-bright: #2563EB;
   --brand-cyan: #06B6D4;
@@ -26,42 +27,44 @@
   --alert-red: #DC2626;
   --gold: #F59E0B;
 
-  /* Text */
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #64748B;
+  /* ─── Text — MUST be readable on every background ─────────── */
+  --text-primary: #0F172A;      /* dark slate: for LIGHT backgrounds */
+  --text-on-dark: #F1F5F9;      /* near-white: for DARK backgrounds */
+  --text-on-dark-secondary: #CBD5E1;
+  --text-muted: #475569;        /* mid grey: for light backgrounds */
+  --text-muted-dark: #94A3B8;   /* muted on dark backgrounds */
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   padding: 0;
   margin: 0;
   background: var(--bg-base);
-  color: var(--text-primary);
+  color: var(--text-on-dark);  /* default: we're on the dark page bg */
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
 }
 
-/* ─── Background texture - candlestick chart feel ─────────────── */
+/* ─── Background texture ─────────────────────────────────────── */
 
 body {
   background-image:
-    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 42%),
-    radial-gradient(circle at 80% 100%, rgba(34, 197, 94, 0.05) 0%, transparent 48%),
-    linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 55%, #F1F5F9 100%);
+    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(30, 64, 175, 0.06) 0%, transparent 60%);
   background-attachment: fixed;
 }
 
-/* ─── Glassmorphism utilities ──────────────────────────────── */
+/* ─── Glass utilities ────────────────────────────────────────── */
+/* Both glass classes are DARK surfaces with LIGHT text. */
 
 .glass {
   background: var(--bg-glass);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--border-subtle);
+  color: var(--text-on-dark);
 }
 
 .glass-strong {
@@ -69,25 +72,53 @@ body {
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid var(--border-strong);
+  color: var(--text-on-dark);
 }
 
-/* ─── Hover lift effect ───────────────────────────────────── */
+/* Force readable text inside any glass surface */
+.glass p, .glass span, .glass li, .glass td, .glass th,
+.glass-strong p, .glass-strong span, .glass-strong li, .glass-strong td, .glass-strong th {
+  color: inherit;
+}
+
+/* Muted text inside glass surfaces is still light enough to read */
+.glass [style*="var(--text-secondary)"],
+.glass-strong [style*="var(--text-secondary)"],
+.glass [style*="var(--text-muted)"],
+.glass-strong [style*="var(--text-muted)"] {
+  color: var(--text-on-dark-secondary) !important;
+}
+
+/* ─── Solid light card utility (for pages that need it) ──────── */
+
+.surface-light {
+  background: var(--bg-card-light);
+  color: var(--text-primary);
+  border: 1px solid #CBD5E1;
+}
+
+.surface-light p, .surface-light span, .surface-light li {
+  color: var(--text-primary);
+}
+
+/* ─── Hover lift ─────────────────────────────────────────────── */
 
 .hover-lift {
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-              border-color 0.25s ease,
-              box-shadow 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .hover-lift:hover {
   transform: translateY(-4px);
   border-color: var(--border-strong);
   box-shadow:
-    0 20px 40px -12px rgba(15, 23, 42, 0.14),
+    0 20px 40px -12px rgba(14, 165, 233, 0.25),
     0 0 0 1px rgba(96, 165, 250, 0.2);
 }
 
-/* ─── Brand gradients ─────────────────────────────────────── */
+/* ─── Brand gradients ────────────────────────────────────────── */
 
 .brand-gradient {
   background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-cyan) 100%);
@@ -105,7 +136,7 @@ body {
   color: transparent;
 }
 
-/* ─── Pill badge (matches flyer's "PHYSICAL CLASS" / "ONLINE CLASS") ── */
+/* ─── Pills ──────────────────────────────────────────────────── */
 
 .pill {
   display: inline-flex;
@@ -120,36 +151,36 @@ body {
 }
 
 .pill-green {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--signal-green-bright);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.18);
+  color: #86EFAC;
+  border: 1px solid rgba(34, 197, 94, 0.35);
 }
 
 .pill-blue {
-  background: rgba(14, 165, 233, 0.15);
-  color: var(--brand-bull);
-  border: 1px solid rgba(14, 165, 233, 0.3);
+  background: rgba(14, 165, 233, 0.18);
+  color: #7DD3FC;
+  border: 1px solid rgba(14, 165, 233, 0.35);
 }
 
 .pill-gold {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--gold);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.18);
+  color: #FCD34D;
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .pill-red {
-  background: rgba(220, 38, 38, 0.15);
-  color: var(--alert-red);
-  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.18);
+  color: #FCA5A5;
+  border: 1px solid rgba(220, 38, 38, 0.35);
 }
 
-/* ─── Ribbon CTA (matches flyer's "FREE 7-DAYS SUMMIT" ribbon) ── */
+/* ─── Ribbon CTA ─────────────────────────────────────────────── */
 
 .ribbon {
   display: inline-block;
   padding: 0.5rem 1.5rem;
   background: var(--alert-red);
-  color: white;
+  color: #FFFFFF;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -162,27 +193,19 @@ body {
   transform: skewX(6deg);
 }
 
-/* ─── Custom scrollbar ────────────────────────────────────── */
+/* ─── Scrollbar ──────────────────────────────────────────────── */
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-elevated);
-}
-
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-elevated); }
 ::-webkit-scrollbar-thumb {
   background: rgba(96, 165, 250, 0.25);
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(96, 165, 250, 0.4);
 }
 
-/* ─── Animations ──────────────────────────────────────────── */
+/* ─── Animations ─────────────────────────────────────────────── */
 
 @keyframes float-slow {
   0%, 100% { transform: translateY(0) }
@@ -203,15 +226,18 @@ body {
 .animate-glow    { animation: pulse-glow 3s ease-in-out infinite }
 .animate-ticker  { animation: ticker-up 0.4s ease-out both }
 
+/* ─── Readability overrides for inline-styled muted text ─────── */
+/* Some components use style={{ color: "var(--text-secondary)" }}
+   or "var(--text-muted)" inline. On dark backgrounds those values
+   were too dark. We redefine them to be readable on dark. */
 
-/* ─── Light-surface compatibility ─────────────────────────── */
-
-.bg-black\/30 { background-color: rgba(248, 250, 252, 0.92) !important; }
-.bg-black\/40 { background-color: rgba(226, 232, 240, 0.9) !important; }
-
-input, textarea, select {
-  background-color: #FFFFFF;
-  color: var(--text-primary);
+:root {
+  --text-secondary: #CBD5E1;  /* light slate — good on dark bg */
+  --text-muted: #94A3B8;      /* muted — still readable on dark */
 }
 
-input::placeholder, textarea::placeholder { color: #94A3B8; }
+/* But inside .surface-light (light cards), darker text is needed */
+.surface-light {
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+}

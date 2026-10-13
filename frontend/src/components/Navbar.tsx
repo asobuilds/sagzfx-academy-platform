@@ -11,8 +11,6 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Re-check auth on every route change so the navbar reflects the
-  // current session (e.g. right after login or logout).
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -22,14 +20,8 @@ export default function Navbar() {
       .then((u) => {
         if (!cancelled) setUser(u);
       })
-      .catch((err) => {
-        if (!cancelled) {
-          if (err instanceof ApiError && err.status === 401) {
-            setUser(null);
-          } else {
-            setUser(null);
-          }
-        }
+      .catch(() => {
+        if (!cancelled) setUser(null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -74,10 +66,7 @@ export default function Navbar() {
             >
               SAGZFX <span className="text-gradient">ACADEMY</span>
             </div>
-            <div
-              className="text-xs"
-              style={{ color: "var(--text-muted)" }}
-            >
+            <div className="text-xs" style={{ color: "var(--text-muted)" }}>
               Profits Forever
             </div>
           </div>
@@ -91,6 +80,13 @@ export default function Navbar() {
             style={{ color: "var(--text-secondary)" }}
           >
             Curriculum
+          </Link>
+          <Link
+            href="/practice"
+            className="hover:text-cyan-400 transition"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Practice
           </Link>
           <Link
             href="/pricing"

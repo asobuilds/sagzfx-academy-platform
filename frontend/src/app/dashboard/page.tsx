@@ -37,8 +37,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Auth is cookie-only: `me()` is the source of truth. A 401 below is
-    // what sends an unauthenticated visitor to /login (see the catch).
     Promise.all([
       endpoints.me(),
       endpoints.catalog(),
@@ -136,14 +134,22 @@ export default function DashboardPage() {
             <p style={{ color: "var(--text-secondary)" }}>{user.email}</p>
           </div>
 
-          {tier !== "masters" && (
+          <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/pricing"
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40"
+              href="/practice"
+              className="px-6 py-3 rounded-xl glass hover-lift font-semibold"
             >
-              {tier === "registered" ? "Choose a class →" : "Upgrade →"}
+              Open Practice Trading →
             </Link>
-          )}
+            {tier !== "masters" && (
+              <Link
+                href="/pricing"
+                className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40"
+              >
+                {tier === "registered" ? "Choose a class →" : "Upgrade →"}
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Progress strip */}
@@ -167,10 +173,7 @@ export default function DashboardPage() {
                 : "Not active"
             }
           />
-          <StatBox
-            label="Mentorship"
-            value={user.mentorship_lifetime ? "Lifetime" : "Not active"}
-          />
+          <StatBox label="Practice Account" value="Free $10,000" />
         </div>
       </div>
 

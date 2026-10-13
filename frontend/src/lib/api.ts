@@ -2,20 +2,12 @@
  * SAGZFX ACADEMY - API client.
  *
  * Auth model: cookie-only.
- *   - The backend sets HttpOnly cookies named `sagzfx_access` and `sagzfx_refresh`.
- *   - Every request sends `credentials: "include"` so cookies travel with them.
- *   - The frontend NEVER stores tokens in localStorage.
- *   - To know if the user is logged in, call `me()`. A 200 means yes, a 401 means no.
  */
 
-// The fallback must be `localhost`, NOT `127.0.0.1`: the session cookie is
-// SameSite=Lax, and browsers ignore the port when computing "same site". A
-// page on localhost:3000 calling localhost:8000 is same-site (cookie sent);
-// calling 127.0.0.1:8000 is cross-site (cookie dropped -> 401 on /auth/me).
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// ─── Deprecated token helpers (kept for compatibility) ─────
+// ─── Deprecated token helpers ──────────────────────────────
 
 export function getToken(): string | null {
   return null;
@@ -80,7 +72,7 @@ export async function api<T = unknown>(
     method,
     headers,
     body: payload,
-    credentials: "include", // ← cookies travel with every request
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -156,33 +148,62 @@ export type BrandInfo = {
   exness_ib_link: string;
 };
 
+// ─── Practice Trading types ────────────────────────────────
+// These mirror the response shapes from app/api/v1/practice_trading.py
+// and app/schemas/practice_trading.py
+
 export type PracticeAccount = {
   account_id: string;
+  user_id: string;
   starting_balance: string;
   balance: string;
   currency: string;
   status: string;
   reset_count: number;
   execution_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type PracticeOrder = {
   order_id: string;
+  account_id: string;
   symbol: string;
   side: "buy" | "sell";
   lot_size: string;
   entry_price: string;
+  entry_rate_date: string | null;
+  status: "open" | "closed";
+  exit_price: string | null;
+  realized_pnl: string | null;
   opened_at: string;
-  status: string;
+  closed_at: string | null;
 };
 
-export type LedgerEntry = {
+export type PracticeLedgerEntry = {
   entry_id: string;
-  kind: string;
+  account_id: string;
+  entry_type: string;
   amount: string;
   balance_after: string;
-  created_at: string;
   note: string | null;
+  created_at: string;
+};
+
+export type PracticeQuote = {
+  symbol: string;
+  rate: string;
+  rate_date: string;
+  provider: string;
+  price_type: string;
+  realtime: boolean;
+  execution_enabled: boolean;
+  disclaimer: string;
+};
+
+export type PracticeHistoryPoint = {
+  date: string;
+  rate: number;
 };
 
 export type PublicReview = {
@@ -195,11 +216,7 @@ export type PublicReview = {
 // ─── Endpoint helpers ──────────────────────────────────────
 
 export const endpoints = {
-  // ─── Public / brand ──────────────────────────────────────
-
   brand: () => api<BrandInfo>("/api/v1/brand", { auth: false }),
-
-  // ─── Auth ────────────────────────────────────────────────
 
   register: (full_name: string, email: string, password: string) =>
     api<User>("/api/v1/auth/register", {
@@ -219,14 +236,10 @@ export const endpoints = {
 
   me: () => api<User>("/api/v1/auth/me"),
 
-  // ─── Curriculum ──────────────────────────────────────────
-
   catalog: () => api<CatalogResponse>("/api/v1/curriculum/modules"),
 
   module: (module_id: string) =>
     api<ModuleDetail>(`/api/v1/curriculum/modules/${module_id}`),
-
-  // ─── MT5 / Exness ────────────────────────────────────────
 
   mt5Status: () =>
     api<{
@@ -236,8 +249,6 @@ export const endpoints = {
       exness_ib_link: string;
     }>("/api/v1/mt5-demo/status"),
 
-  // ─── Community realtime ──────────────────────────────────
-
   realtimeConfig: () =>
     api<{
       supabase_url: string | null;
@@ -245,8 +256,6 @@ export const endpoints = {
       channel: string;
       access_tier: string;
     }>("/api/v1/community/realtime-config"),
-
-  // ─── Payments ────────────────────────────────────────────
 
   initPayment: (product_slug: string, callback_url: string) =>
     api<{ provider: string; checkout_url: string; reference: string }>(
@@ -265,7 +274,9 @@ export const endpoints = {
     }),
 
   resetPracticeAccount: () =>
-    api("/api/v1/practice-trading/account/reset", { method: "POST" }),
+    api<PracticeAccount>("/api/v1/practice-trading/account/reset", {
+      method: "POST",
+    }),
 
   practiceOrders: () =>
     api<PracticeOrder[]>("/api/v1/practice-trading/orders"),
@@ -277,20 +288,18 @@ export const endpoints = {
     }),
 
   closePracticeOrder: (order_id: string) =>
-    api(`/api/v1/practice-trading/orders/${order_id}/close`, {
+    api<PracticeOrder>(`/api/v1/practice-trading/orders/${order_id}/close`, {
       method: "POST",
     }),
 
   practiceLedger: () =>
-    api<LedgerEntry[]>("/api/v1/practice-trading/ledger"),
+    api<PracticeLedgerEntry[]>("/api/v1/practice-trading/ledger"),
 
   practiceQuote: (symbol: string) =>
-    api<{ symbol: string; bid: string; ask: string; ts: string }>(
-      `/api/v1/practice-trading/quote/${symbol}`,
-    ),
+    api<PracticeQuote>(`/api/v1/practice-trading/quote/${symbol}`),
 
   practiceHistory: (symbol: string) =>
-    api<Array<{ ts: string; price: string }>>(
+    api<PracticeHistoryPoint[]>(
       `/api/v1/practice-trading/history/${symbol}`,
     ),
 
