@@ -14,14 +14,23 @@ from app.schemas.curriculum import CatalogResponse, ModuleDetail, ModuleSummary
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
 
 
-async def _progress_for_user(db: AsyncSession, user: User) -> dict[str, StudentProgress]:
+async def _progress_for_user(
+    db: AsyncSession, user: User
+) -> dict[str, StudentProgress]:
     rows = (
-        await db.execute(select(StudentProgress).where(StudentProgress.user_id == user.user_id))
+        await db.execute(
+            select(StudentProgress).where(StudentProgress.user_id == user.user_id)
+        )
     ).scalars().all()
     return {row.module_id: row for row in rows}
 
 
-def _unlocked(module: CourseModule, user: User, progress: StudentProgress | None, now: datetime) -> bool:
+def _unlocked(
+    module: CourseModule,
+    user: User,
+    progress: StudentProgress | None,
+    now: datetime,
+) -> bool:
     return module_is_accessible(
         plan=user.learning_plan,
         tier_level=module.tier_level,
@@ -47,14 +56,16 @@ async def list_modules(
     for module in rows:
         unlocked = _unlocked(module, user, progress.get(module.module_id), now)
         unlocked_count += int(unlocked)
-        modules.append(ModuleSummary(
-            module_id=module.module_id,
-            tier_level=module.tier_level,
-            title=module.title,
-            sort_order=module.sort_order,
-            is_premium_locked=module.is_premium_locked,
-            unlocked=unlocked,
-        ))
+        modules.append(
+            ModuleSummary(
+                module_id=module.module_id,
+                tier_level=module.tier_level,
+                title=module.title,
+                sort_order=module.sort_order,
+                is_premium_locked=module.is_premium_locked,
+                unlocked=unlocked,
+            )
+        )
 
     return CatalogResponse(
         access_tier=user.learning_plan,
@@ -87,12 +98,16 @@ async def get_module(
         if not plan_allows_tier(user.learning_plan, module.tier_level):
             detail = "Your learning plan does not include this module."
         elif user.class_expires_at and now > user.class_expires_at:
-            detail = "Your class period has ended and this module was not opened during it."
+            detail = (
+                "Your class period has ended and this module was not opened "
+                "during it."
+            )
         else:
             detail = "An active class period is required to open this module."
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
-    # First successful access during the active class permanently records the module.
+    # First successful access during the active class permanently records
+    # the module so it remains available after expiry.
     if (
         user.class_expires_at
         and now <= user.class_expires_at
@@ -109,6 +124,11 @@ async def get_module(
             progress.first_opened_at = now
         await db.commit()
 
+    # Lesson content — only for unlocked modules
+    learning_outcomes: list[str] = []
+    if module.learning_outcomes:
+        learning_outcomes = [str(x) for x in module.learning_outcomes]
+
     return ModuleDetail(
         module_id=module.module_id,
         tier_level=module.tier_level,
@@ -117,4 +137,10 @@ async def get_module(
         is_premium_locked=module.is_premium_locked,
         unlocked=True,
         video_url_slug=module.video_url_slug,
+        lesson_body=module.lesson_body,
+        learning_outcomes=learning_outcomes,
+        assignment=module.assignment,
+        checkpoint_questions=module.checkpoint_questions,
+        estimated_minutes=module.estimated_minutes,
+        lesson_status=module.lesson_status,
     )
