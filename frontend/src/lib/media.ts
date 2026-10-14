@@ -118,3 +118,37 @@ export const CAMPUS_MEDIA: MediaItem[] = [
  * Leave empty string to hide the video button on the landing page.
  */
 export const CAMPUS_TOUR_VIDEO_ID = "";
+
+
+// ─── Supabase Storage (video hosting) ──────────────────────
+
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+const SUPABASE_MEDIA_BUCKET =
+  process.env.NEXT_PUBLIC_SUPABASE_MEDIA_BUCKET ?? "media";
+
+/**
+ * Build a public URL for a file in the Supabase `media` bucket.
+ *
+ * Usage:
+ *   videoUrl("campus-tour.mp4") →
+ *     "https://<project>.supabase.co/storage/v1/object/public/media/campus-tour.mp4"
+ */
+export function videoUrl(filename: string): string {
+  if (!SUPABASE_URL) return "";
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_MEDIA_BUCKET}/${filename}`;
+}
+
+/**
+ * The campus tour video (uploaded to Supabase Storage).
+ * To change the video, replace the file in the bucket and update this name.
+ */
+export const CAMPUS_TOUR_VIDEO_FILE =
+  process.env.NEXT_PUBLIC_CAMPUS_VIDEO_FILE ?? "campus-tour.mp4.mp4";
+
+/**
+ * Ready-to-use URL for the campus tour video.
+ * Empty string if Supabase URL is not configured.
+ */
+export const CAMPUS_TOUR_VIDEO_URL = videoUrl(CAMPUS_TOUR_VIDEO_FILE);

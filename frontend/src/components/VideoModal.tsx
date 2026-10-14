@@ -3,15 +3,18 @@
 import { useState } from "react";
 
 type Props = {
-  videoId: string;
+  /** Full video URL (Supabase Storage, or any direct .mp4/.webm URL). */
+  videoSrc: string;
+  /** Button label. */
   label: string;
+  /** Optional additional classes on the trigger button. */
   className?: string;
 };
 
-export default function VideoModal({ videoId, label, className = "" }: Props) {
+export default function VideoModal({ videoSrc, label, className = "" }: Props) {
   const [open, setOpen] = useState(false);
 
-  if (!videoId) return null;
+  if (!videoSrc) return null;
 
   return (
     <>
@@ -51,12 +54,13 @@ export default function VideoModal({ videoId, label, className = "" }: Props) {
             onClick={(e) => e.stopPropagation()}
             style={{ background: "#000" }}
           >
-            <iframe
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video
+              src={videoSrc}
+              controls
+              autoPlay
+              playsInline
               className="w-full h-full"
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`}
-              title={label}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
             />
           </div>
         </div>
