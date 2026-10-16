@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { endpoints, ApiError } from "@/lib/api";
+import PageIntro from "@/components/educational/PageIntro";
+import HowToGuide from "@/components/educational/HowToGuide";
+import InlineHelp from "@/components/educational/InlineHelp";
+import NextStepCue from "@/components/educational/NextStepCue";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,21 +49,12 @@ export default function LoginPage() {
   return (
     <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-md space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex w-14 h-14 rounded-2xl brand-gradient items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-500/20">
-            SG
-          </div>
-          <h1
-            className="text-3xl md:text-4xl font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            Welcome <span className="text-gradient">back</span>
-          </h1>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Sign in to continue to your dashboard
-          </p>
-        </div>
+        <PageIntro title="Sign in to SAGZFX" description="Sign in to continue your lessons, view your learning plan, and use your practice account." className="text-center" />
+        <HowToGuide storageKey="login" steps={[
+          "Enter the email address you used to register.",
+          "Enter your password.",
+          "Select Sign in to open your dashboard.",
+        ]} />
 
         {/* Form card */}
         <form
@@ -74,13 +69,17 @@ export default function LoginPage() {
 
           <div className="space-y-2">
             <label
+              htmlFor="login-email"
               className="text-xs uppercase tracking-wider"
               style={{ color: "var(--text-muted)" }}
             >
               Email
             </label>
-            <input
-              type="email"
+            <InlineHelp text="Use the same email address you used when creating your account.">
+              <input
+                id="login-email"
+                autoComplete="email"
+                type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -90,18 +89,23 @@ export default function LoginPage() {
                 borderColor: "var(--border-subtle)",
                 color: "var(--text-primary)",
               }}
-            />
+              />
+            </InlineHelp>
           </div>
 
           <div className="space-y-2">
             <label
+              htmlFor="login-password"
               className="text-xs uppercase tracking-wider"
               style={{ color: "var(--text-muted)" }}
             >
               Password
             </label>
-            <input
-              type="password"
+            <InlineHelp text="Enter the password you chose when creating your account.">
+              <input
+                id="login-password"
+                autoComplete="current-password"
+                type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -111,7 +115,8 @@ export default function LoginPage() {
                 borderColor: "var(--border-subtle)",
                 color: "var(--text-primary)",
               }}
-            />
+              />
+            </InlineHelp>
           </div>
 
           <button
@@ -135,6 +140,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </form>
+        <NextStepCue message="After signing in, open your dashboard to find your available lessons." href="/dashboard" linkLabel="Go to dashboard" available={false} fallback="After signing in, your dashboard will open with your available lessons." />
       </div>
     </section>
   );
