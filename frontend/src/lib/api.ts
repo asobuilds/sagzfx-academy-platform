@@ -213,6 +213,12 @@ export type PublicReview = {
   body: string;
 };
 
+export type PaymentStatus = {
+  reference: string;
+  status: "pending" | "confirmed";
+  learning_plan?: string;
+};
+
 // ─── Endpoint helpers ──────────────────────────────────────
 
 export const endpoints = {
@@ -261,6 +267,11 @@ export const endpoints = {
     api<{ provider: string; checkout_url: string; reference: string }>(
       "/api/v1/payments/init",
       { method: "POST", body: { product_slug, callback_url } },
+    ),
+
+  paymentStatus: (reference: string) =>
+    api<PaymentStatus>(
+      `/api/v1/payments/status/${encodeURIComponent(reference)}`,
     ),
 
   // ─── Practice Trading ────────────────────────────────────

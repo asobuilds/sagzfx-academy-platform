@@ -208,3 +208,33 @@ async def paystack_webhook(
         "applied": product_slug,
         "user_id": str(user.user_id),
     }
+
+
+@router.get("/status/{reference}")
+async def payment_status(
+    reference: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check whether this user's Paystack reference was processed."""
+    if not reference.startswith("sagzfx_") or len(reference) > 100:
+        raise HTTPException(status_code=400, detail="Invalid payment reference.")
+
+    marker = (
+        await db.execute(
+            select(PremiumPurchase).where(
+                PremiumPurchase.user_id == user.user_id,
+                PremiumPurchase.product_slug == f"paid:{reference}",
+                PremiumPurchase.subscription_status == "processed",
+            )
+        )
+    ).scalar_one_or_none()
+
+    if marker is None:
+        return {"reference": reference, "status": "pending"}
+
+    return {
+        "reference": reference,
+        "status": "confirmed",
+        "learning_plan": user.learning_plan,
+    }
