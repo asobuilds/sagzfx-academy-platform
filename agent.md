@@ -13,6 +13,10 @@ This file is the engineering source of truth for agents working on this reposito
 7. Practice Trading is free to every authenticated user, regardless of learning plan.
 8. Practice trades are virtual money only. Never route an order to Exness or claim the reference feed is broker execution data.
 9. No Co-authored-by: Codex trailers.
+10. Preserve "Profits Forever" as the client's established brand slogan
+    (RC 8064497). Do not propose its removal or replacement.
+11. Propose targeted diffs first. Do not edit files, commit changes,
+    or run production migrations without explicit operator approval.
 
 ## Current architecture
 
@@ -21,8 +25,31 @@ This file is the engineering source of truth for agents working on this reposito
 - Neon PostgreSQL
 - Render backend + frontend
 - Paystack live checkout/webhook
+- Cookie-only browser auth: backend-set HttpOnly cookies, credentials:
+  "include", and /auth/me as the source of session truth.
+- Cloudinary images: nirybrdh
+- Supabase Storage videos: project dgxyzhphyprrcwdvzrue, bucket media
 - Frankfurter free educational FX reference adapter
 - GitHub Actions backend/frontend CI
+
+## Curriculum architecture
+
+57 modules: Beginner 12, Market Structure 14, Advanced 20,
+Masterclass 11.
+
+Course lesson bodies are Markdown stored in course_modules.lesson_body.
+Learning outcomes, assignments, and checkpoints use learning_outcomes
+(TEXT[]), assignment (TEXT), and checkpoint_questions (JSONB).
+Source lessons are under frontend/content/lessons/.
+
+Migrations 006_lesson_content and 007_masterclass_expansion are
+reported applied to live Neon by the operator. Do not reapply them
+without first checking database migration state.
+
+Payment product slugs:
+- tuition -> beginner
+- advance -> advanced
+- one-on-one -> masters
 
 ## Business rules
 
@@ -50,8 +77,17 @@ Execution model:
 
 ## Release status
 
-Production is live through PR #14 / commit `b81b18082193759d025df20c99ec4c017558bdaf`.
-The current completion branch is `feature/complete-practice-trading`. It introduces migration 004 and the complete virtual trading workspace. Migration 004 must be approved/applied to production Neon before this branch can be merged/deployed.
+The previous confirmed production baseline was PR #14 / commit
+`b81b18082193759d025df20c99ec4c017558bdaf`.
+This is a historical baseline, not verification of the currently
+deployed Render commit.
+
+The repository now includes migrations 001–007, lesson source files,
+and the 57-module curriculum expansion. Migrations 006/007 are
+operator-confirmed as applied to Neon.
+
+The current payment checkout, entitlement webhook, and payment-success
+flow require coordinated verification before being declared complete.
 
 ## After Practice Trading
 
