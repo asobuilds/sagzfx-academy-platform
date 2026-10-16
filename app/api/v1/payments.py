@@ -180,7 +180,8 @@ async def paystack_webhook(
     now = datetime.now(timezone.utc)
     user.class_started_at = now
     user.class_expires_at = now + relativedelta(months=1)
-    user.mentorship_lifetime = True
+    if product_slug == "one-on-one":
+        user.mentorship_lifetime = True
     user.has_paid_tuition = True
     if user.tuition_activated_at is None:
         user.tuition_activated_at = now
