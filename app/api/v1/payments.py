@@ -36,24 +36,24 @@ def _one_month_after(dt: datetime) -> datetime:
 
 
 PRODUCTS = {
-    "tuition": {
+    "beginner": {
         "amount_kobo": 150_000_00,     # NGN 150,000
         "description": "SAGZFX Beginners Class - Full Tuition",
     },
-    "advance": {
+    "advanced": {
         "amount_kobo": 250_000_00,     # NGN 250,000
         "description": "SAGZFX Advance Class",
     },
-    "one-on-one": {
+    "masters": {
         "amount_kobo": 500_000_00,     # NGN 500,000
         "description": "SAGZFX One-on-One Mentorship",
     },
 }
 
 PRODUCT_PLANS = {
-    "tuition": "beginner",
-    "advance": "advanced",
-    "one-on-one": "masters",
+    "beginner": "beginner",
+    "advanced": "advanced",
+    "masters": "masters",
 }
 
 PLAN_RANK = {
@@ -185,7 +185,7 @@ async def paystack_webhook(
     now = datetime.now(timezone.utc)
     user.class_started_at = now
     user.class_expires_at = _one_month_after(now)
-    if product_slug == "one-on-one":
+    if product_slug == "masters":
         user.mentorship_lifetime = True
     user.has_paid_tuition = True
     if user.tuition_activated_at is None:
