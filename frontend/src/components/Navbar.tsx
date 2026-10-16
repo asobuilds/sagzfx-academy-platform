@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { endpoints, type User } from "@/lib/api";
 
@@ -10,6 +10,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +36,58 @@ export default function Navbar() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const panel = menuRef.current;
+    const focusable = () => Array.from(panel?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? []);
+    focusable()[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        restoreFocus.current = true;
+        setMenuOpen(false);
+      } else if (event.key === "Tab") {
+        const elements = focusable();
+        if (!elements.length) return;
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!panel?.contains(event.target as Node) && !toggleRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onResize = () => { if (window.innerWidth >= 768) setMenuOpen(false); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen && restoreFocus.current) {
+      restoreFocus.current = false;
+      toggleRef.current?.focus();
+    }
+  }, [menuOpen]);
+
+  const closeMenu = () => setMenuOpen(false);
+
   const logout = async () => {
     try {
       await endpoints.logout();
@@ -38,6 +95,7 @@ export default function Navbar() {
       // ignore — cookies get cleared server-side on success anyway
     }
     setUser(null);
+    closeMenu();
     router.push("/");
     router.refresh();
   };
@@ -111,7 +169,7 @@ export default function Navbar() {
         </div>
 
         {/* Auth action */}
-        <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3">
           {loading ? (
             <div className="w-24 h-9 rounded-lg glass animate-pulse" />
           ) : user ? (
@@ -148,7 +206,45 @@ export default function Navbar() {
             </>
           )}
         </div>
+        <button
+          ref={toggleRef}
+          type="button"
+          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={menuOpen}
+          aria-controls={menuId}
+          onClick={() => { restoreFocus.current = false; setMenuOpen((value) => !value); }}
+          className="md:hidden inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/20 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+        >
+          <span aria-hidden="true" className="text-xl">{menuOpen ? "×" : "☰"}</span>
+        </button>
       </div>
+      {menuOpen && (
+        <div id={menuId} ref={menuRef} role="dialog" aria-modal="true" aria-label="Mobile navigation"
+          className="md:hidden absolute left-0 right-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-white/20 bg-[#050B14] px-4 py-4 shadow-2xl">
+          <div className="mx-auto flex max-w-7xl flex-col gap-1">
+            {[
+              { href: "/#curriculum", label: "Curriculum" },
+              { href: "/practice", label: "Practice" },
+              { href: "/pricing", label: "Pricing" },
+              { href: "/campus", label: "Campus" },
+              { href: "/#contact", label: "Contact" },
+            ].map(({ href, label }) => (
+              <Link key={href} href={href} onClick={closeMenu} className="rounded-lg px-4 py-3 text-sm text-slate-100 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-400">{label}</Link>
+            ))}
+            {!loading && (user ? (
+              <>
+                <Link href="/dashboard" onClick={closeMenu} className="rounded-lg px-4 py-3 text-sm font-semibold text-cyan-300 focus-visible:outline-2 focus-visible:outline-cyan-400">Dashboard</Link>
+                <button type="button" onClick={logout} className="rounded-lg px-4 py-3 text-left text-sm text-slate-100 focus-visible:outline-2 focus-visible:outline-cyan-400">Logout</button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={closeMenu} className="rounded-lg px-4 py-3 text-sm text-slate-100 focus-visible:outline-2 focus-visible:outline-cyan-400">Login</Link>
+                <Link href="/register" onClick={closeMenu} className="rounded-lg bg-cyan-700 px-4 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-cyan-400">Get Started</Link>
+              </>
+            ))}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
