@@ -3,381 +3,167 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  endpoints,
-  clearTokens,
-  ApiError,
-  type ModuleDetail,
-  type CatalogResponse,
-} from "@/lib/api";
-import Markdown from "@/components/Markdown";
+import { endpoints, ApiError, type ModuleDetail, type CatalogResponse } from "@/lib/api";
+import LessonHeader from "@/components/student/LessonHeader";
+import LessonGuide from "@/components/student/LessonGuide";
+import LessonReader from "@/components/student/LessonReader";
+import CheckpointCard from "@/components/student/CheckpointCard";
+import AssignmentPanel from "@/components/student/AssignmentPanel";
+import LessonNavigation from "@/components/student/LessonNavigation";
+import LearningOutcomes from "@/components/student/LearningOutcomes";
+import NextStepCue from "@/components/educational/NextStepCue";
+
+function videoIdFromSlug(slug: string): string | null {
+  const trimmed = slug.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.toLowerCase();
+    if (host === "youtu.be") {
+      const id = url.pathname.slice(1);
+      return /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+    }
+    if (host === "youtube.com" || host === "www.youtube.com" || host === "youtube-nocookie.com" || host === "www.youtube-nocookie.com") {
+      const id = url.searchParams.get("v") ?? url.pathname.split("/").filter(Boolean).at(-1) ?? "";
+      return /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function VideoSlot({ slug, title }: { slug: string | null; title: string }) {
+  const id = slug ? videoIdFromSlug(slug) : null;
+  return (
+    <section aria-label="Lesson video" className="space-y-3">
+      {id ? (
+        <div className="aspect-video overflow-hidden rounded-2xl border border-white/15 bg-black">
+          <iframe
+            title={`Video lesson: ${title}`}
+            src={`https://www.youtube-nocookie.com/embed/${id}`}
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="h-full w-full"
+          />
+        </div>
+      ) : (
+        <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed text-slate-300">
+          This lesson does not have a video yet. You can still study the written explanation below.
+        </p>
+      )}
+    </section>
+  );
+}
+
+type LessonData = { lesson: ModuleDetail; catalog: CatalogResponse };
 
 export default function ModulePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const moduleId = params?.id;
-
-  const [module, setModule] = useState<ModuleDetail | null>(null);
-  const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [locked, setLocked] = useState(false);
-
-  // Checkpoint quiz state
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
+  const [data, setData] = useState<LessonData | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "locked" | "missing" | "error">("loading");
 
   useEffect(() => {
     if (!moduleId) return;
-
-    // Auth is cookie-only: the API's 401 below is the gate, not a local check.
+    let cancelled = false;
     Promise.all([endpoints.module(moduleId), endpoints.catalog()])
-      .then(([m, c]) => {
-        setModule(m);
-        setCatalog(c);
+      .then(([lesson, catalog]) => {
+        if (cancelled) return;
+        setData({ lesson, catalog });
+        setState("ready");
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
+        if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) {
-          clearTokens();
-          router.push("/login");
-          return;
+          router.replace("/login");
+        } else if (err instanceof ApiError && err.status === 403) {
+          setState("locked");
+        } else if (err instanceof ApiError && err.status === 404) {
+          setState("missing");
+        } else {
+          setState("error");
         }
-        if (err instanceof ApiError && err.status === 403) {
-          setLocked(true);
-          setError(
-            typeof err.detail === "string"
-              ? err.detail
-              : "This module is not available on your current plan.",
-          );
-          return;
-        }
-        setError("Failed to load module. Please try again.");
-      })
-      .finally(() => setLoading(false));
+      });
+    return () => { cancelled = true; };
   }, [moduleId, router]);
 
-  // ─── Loading ────────────────────────────────────────────
-  if (loading) {
-    return (
-      <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="glass rounded-2xl p-8 animate-pulse">
-          <p style={{ color: "var(--text-secondary)" }}>Loading lesson…</p>
-        </div>
-      </section>
-    );
-  }
+  if (state === "loading") return (
+    <main aria-busy="true" aria-label="Loading lesson" className="mx-auto max-w-7xl space-y-5 px-4 py-10 md:px-8">
+      <div className="h-5 w-56 animate-pulse rounded-lg bg-white/10" />
+      <div className="h-12 w-full max-w-xl animate-pulse rounded-lg bg-white/10" />
+      <div className="h-32 animate-pulse rounded-2xl bg-white/10" />
+      <div className="h-96 animate-pulse rounded-2xl bg-white/10" />
+    </main>
+  );
 
-  // ─── Locked ─────────────────────────────────────────────
-  if (locked) {
+  if (state !== "ready" || !data) {
+    const locked = state === "locked";
+    const missing = state === "missing";
     return (
-      <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="glass-strong rounded-3xl p-10 max-w-lg text-center space-y-6">
-          <span className="pill pill-red">🔒 Locked</span>
-          <h1
-            className="text-3xl font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
-          >
-            Unlock this module
-          </h1>
-          <p style={{ color: "var(--text-secondary)" }}>{error}</p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-            <Link
-              href="/pricing"
-              className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift shadow-lg shadow-blue-900/40"
-            >
-              View Pricing
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-6 py-3 rounded-xl glass hover-lift font-semibold"
-            >
-              Back to Dashboard
-            </Link>
+      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
+        <section className="glass-strong w-full max-w-lg space-y-4 rounded-2xl p-6 sm:p-8" role="alert">
+          <h1 className="text-2xl font-bold">{locked ? "This lesson is locked" : missing ? "This lesson was not found." : "We couldn't load this lesson"}</h1>
+          <p className="text-sm leading-relaxed text-slate-300">
+            {locked ? "This lesson is not included in your current learning plan. Compare the plans to see which one includes it." : missing ? "Check the lesson link or return to your learning path." : "Check your connection and return to the dashboard to try again."}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {locked && <Link href="/pricing" className="brand-gradient inline-flex min-h-11 items-center rounded-xl px-5 py-3 text-sm font-semibold text-white">View learning plans</Link>}
+            <Link href="/dashboard" className="inline-flex min-h-11 items-center rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-slate-100">Back to dashboard</Link>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
     );
   }
 
-  // ─── Error ──────────────────────────────────────────────
-  if (error || !module) {
-    return (
-      <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="glass-strong rounded-3xl p-10 max-w-lg text-center space-y-6">
-          <span className="pill pill-red">Error</span>
-          <p>{error ?? "Something went wrong."}</p>
-          <Link
-            href="/dashboard"
-            className="px-6 py-3 rounded-xl brand-gradient text-white font-semibold hover-lift inline-block"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
-      </section>
-    );
-  }
-
-  // ─── Navigation — find prev/next ────────────────────────
-  const allModules = catalog?.modules ?? [];
-  const currentIdx = allModules.findIndex((m) => m.module_id === module.module_id);
-  const prev = currentIdx > 0 ? allModules[currentIdx - 1] : null;
-  const next =
-    currentIdx >= 0 && currentIdx < allModules.length - 1
-      ? allModules[currentIdx + 1]
-      : null;
-
-  const checkpoint = module.checkpoint_questions;
+  const { lesson, catalog } = data;
+  const tierLessons = catalog.modules
+    .filter((item) => item.tier_level === lesson.tier_level)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const index = tierLessons.findIndex((item) => item.module_id === lesson.module_id);
+  const previous = index > 0 ? tierLessons[index - 1] : null;
+  const next = index >= 0 && index + 1 < tierLessons.length ? tierLessons[index + 1] : null;
+  const position = index >= 0 ? index + 1 : null;
+  const total = index >= 0 ? tierLessons.length : null;
+  const nextAvailable = Boolean(next?.unlocked);
 
   return (
-    <section className="px-4 md:px-8 py-10 max-w-7xl mx-auto">
-      {/* ─── Breadcrumbs ─────────────────────────────────── */}
-      <div className="flex items-center gap-2 text-sm mb-6" style={{ color: "var(--text-muted)" }}>
-        <Link href="/dashboard" className="hover:text-cyan-400 transition">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <span>{module.tier_level}</span>
-        <span>›</span>
-        <span className="text-cyan-400">{module.module_id}</span>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* ─── Main column ───────────────────────────────── */}
-        <div className="lg:col-span-8 space-y-8">
-          {/* Header */}
-          <header className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className={
-                  module.tier_level === "Beginner"
-                    ? "pill pill-green"
-                    : module.tier_level === "Market Structure"
-                      ? "pill pill-blue"
-                      : module.tier_level === "Advanced"
-                        ? "pill pill-gold"
-                        : "pill pill-red"
-                }
-              >
-                {module.tier_level}
-              </span>
-              {module.estimated_minutes && (
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  ~{module.estimated_minutes} min
-                </span>
-              )}
-              {module.lesson_status && (
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  · {module.lesson_status}
-                </span>
-              )}
-            </div>
-
-            <h1
-              className="text-4xl md:text-5xl font-bold tracking-tight"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              {module.title}
-            </h1>
-          </header>
-
-          {/* Video placeholder */}
-          <div className="glass-strong rounded-3xl p-6 md:p-8">
-            <div
-              className="aspect-video rounded-2xl flex items-center justify-center relative overflow-hidden"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(30, 64, 175, 0.15) 100%)",
-                border: "1px solid var(--border-subtle)",
-              }}
-            >
-              <div className="text-center space-y-3">
-                <div className="w-16 h-16 rounded-full brand-gradient flex items-center justify-center mx-auto shadow-2xl shadow-blue-900/40">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                  Video lesson coming soon
-                </p>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  The full recording will appear here
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Lesson body */}
-          {module.lesson_body && (
-            <article className="glass rounded-3xl p-6 md:p-10">
-              <Markdown content={module.lesson_body} />
-            </article>
-          )}
-
-          {/* Checkpoint quiz */}
-          {checkpoint && (
-            <div className="glass-strong rounded-3xl p-6 md:p-8 space-y-6">
-              <div className="flex items-center gap-3">
-                <span className="pill pill-gold">Checkpoint</span>
-                <h3
-                  className="text-xl font-bold"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  Test your understanding
-                </h3>
-              </div>
-
-              <p className="text-base leading-relaxed">{checkpoint.prompt}</p>
-
-              <div className="space-y-3">
-                {checkpoint.options.map((opt, idx) => {
-                  const letter = String.fromCharCode(65 + idx); // A, B, C, D
-                  const isSelected = selectedAnswer === idx;
-                  const isCorrect = idx === checkpoint.correct_index;
-                  const showState = revealed && isSelected;
-
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        if (!revealed) setSelectedAnswer(idx);
-                      }}
-                      className="w-full text-left p-4 rounded-xl glass hover-lift transition flex items-start gap-3"
-                      style={{
-                        borderColor: showState
-                          ? isCorrect
-                            ? "var(--signal-green-bright)"
-                            : "var(--alert-red)"
-                          : "var(--border-subtle)",
-                        opacity: revealed && !isSelected ? 0.6 : 1,
-                      }}
-                    >
-                      <span
-                        className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-sm font-bold"
-                        style={{
-                          background:
-                            showState && isCorrect
-                              ? "var(--signal-green)"
-                              : showState && !isCorrect
-                                ? "var(--alert-red)"
-                                : "rgba(255,255,255,0.05)",
-                        }}
-                      >
-                        {letter}
-                      </span>
-                      <span className="text-sm leading-relaxed">{opt}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {!revealed ? (
-                <button
-                  onClick={() => setRevealed(true)}
-                  disabled={selectedAnswer === null}
-                  className="w-full py-3 rounded-xl brand-gradient text-white font-semibold hover-lift disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {selectedAnswer === null ? "Select an answer" : "Check answer"}
-                </button>
-              ) : (
-                <div
-                  className="rounded-xl p-4 space-y-2"
-                  style={{
-                    background:
-                      selectedAnswer === checkpoint.correct_index
-                        ? "rgba(34, 197, 94, 0.1)"
-                        : "rgba(220, 38, 38, 0.1)",
-                    border: `1px solid ${selectedAnswer === checkpoint.correct_index ? "rgba(34,197,94,0.3)" : "rgba(220,38,38,0.3)"}`,
-                  }}
-                >
-                  <p className="font-semibold">
-                    {selectedAnswer === checkpoint.correct_index
-                      ? "✅ Correct"
-                      : "❌ Not quite"}
-                  </p>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {checkpoint.explanation}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Prev / Next navigation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-            {prev ? (
-              <Link
-                href={`/module/${prev.module_id}`}
-                className="glass rounded-2xl p-5 hover-lift transition text-left space-y-1"
-              >
-                <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  ← Previous
-                </div>
-                <div className="font-semibold text-sm">{prev.title}</div>
-              </Link>
-            ) : (
-              <div />
-            )}
-            {next ? (
-              <Link
-                href={`/module/${next.module_id}`}
-                className="glass rounded-2xl p-5 hover-lift transition text-right space-y-1"
-              >
-                <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Next →
-                </div>
-                <div className="font-semibold text-sm">{next.title}</div>
-              </Link>
-            ) : (
-              <div />
+    <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+      <nav aria-label="Breadcrumb" className="mb-7 flex flex-wrap items-center gap-2 text-sm text-slate-400">
+        <Link href="/dashboard" className="rounded hover:text-cyan-300 focus-visible:outline-2 focus-visible:outline-cyan-400">Dashboard</Link>
+        <span aria-hidden="true">›</span>
+        <span>{lesson.tier_level}</span>
+        <span aria-hidden="true">›</span>
+        <span className="font-mono text-cyan-300" aria-current="page">{lesson.module_id}</span>
+      </nav>
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_310px]">
+        <div className="min-w-0 space-y-8">
+          <LessonHeader title={lesson.title} moduleId={lesson.module_id} tier={lesson.tier_level} position={position} tierTotal={total} estimatedMinutes={lesson.estimated_minutes} />
+          <LessonGuide moduleId={lesson.module_id} />
+          <VideoSlot slug={lesson.video_url_slug} title={lesson.title} />
+          <LessonReader content={lesson.lesson_body} />
+          <LearningOutcomes outcomes={lesson.learning_outcomes} compact />
+          {lesson.assignment && <AssignmentPanel assignment={lesson.assignment} />}
+          {lesson.checkpoint_questions && <CheckpointCard key={lesson.module_id} moduleId={lesson.module_id} checkpoint={lesson.checkpoint_questions} />}
+          <LessonNavigation previous={previous} next={next} />
+          <NextStepCue
+            message={nextAvailable ? "Finished reading? Answer the checkpoint question, review the explanation, and open the next available module." : "The next lesson is not included in your current plan. Review your lessons on the dashboard."}
+            href={nextAvailable ? `/module/${encodeURIComponent(next!.module_id)}` : "/dashboard"}
+            linkLabel={nextAvailable ? "Open next lesson" : "Review your lessons"}
+          />
+        </div>
+        <div className="hidden lg:block">
+          <div className="sticky top-24">
+            <LearningOutcomes outcomes={lesson.learning_outcomes} />
+            {position !== null && total !== null && (
+              <p className="mt-4 text-center text-xs text-slate-400">Lesson {position} of {total} in {lesson.tier_level}</p>
             )}
           </div>
         </div>
-
-        {/* ─── Sidebar ───────────────────────────────────── */}
-        <aside className="lg:col-span-4 space-y-6">
-          {/* Learning outcomes */}
-          {module.learning_outcomes.length > 0 && (
-            <div className="glass-strong rounded-3xl p-6 space-y-4">
-              <span className="pill pill-blue">What You&apos;ll Learn</span>
-              <ul className="space-y-3">
-                {module.learning_outcomes.map((o, i) => (
-                  <li key={i} className="flex gap-3 text-sm leading-relaxed">
-                    <span
-                      className="w-1.5 h-1.5 rounded-full mt-2 shrink-0"
-                      style={{ background: "var(--signal-green-bright)" }}
-                    />
-                    <span style={{ color: "var(--text-secondary)" }}>{o}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Practice assignment */}
-          {module.assignment && (
-            <div className="glass rounded-3xl p-6 space-y-3">
-              <span className="pill pill-green">Practice</span>
-              <h4 className="font-semibold text-sm">Assignment</h4>
-              <div
-                className="text-sm leading-relaxed whitespace-pre-wrap"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                {module.assignment.length > 400
-                  ? module.assignment.slice(0, 400) + "…"
-                  : module.assignment}
-              </div>
-            </div>
-          )}
-
-          {/* Return to dashboard */}
-          <Link
-            href="/dashboard"
-            className="block text-center px-6 py-3 rounded-xl glass hover-lift font-semibold text-sm"
-          >
-            ← Back to Dashboard
-          </Link>
-        </aside>
       </div>
-    </section>
+    </main>
   );
 }
