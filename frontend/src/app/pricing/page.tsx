@@ -52,10 +52,8 @@ export default function PricingPage() {
     setBusy(slug);
     setError(null);
     try {
-      // The existing checkout endpoint accepts product slugs, not learning-tier names.
-      const productSlug = slug === "beginner" ? "tuition" : slug === "advanced" ? "advance" : "one-on-one";
       const callback = `${window.location.origin}/payment-success`;
-      const result = await endpoints.initPayment(productSlug, callback);
+      const result = await endpoints.initPayment(slug, callback);
       if (!result.checkout_url.startsWith("https://")) throw new Error("Invalid checkout URL");
       window.location.assign(result.checkout_url);
     } catch (err) {
