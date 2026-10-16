@@ -30,6 +30,11 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 #   Advance class    = NGN 250,000
 #   One-on-one       = NGN 500,000
 
+def _one_month_after(dt: datetime) -> datetime:
+    """Return dt plus one calendar month, DST-safe."""
+    return dt + relativedelta(months=1)
+
+
 PRODUCTS = {
     "tuition": {
         "amount_kobo": 150_000_00,     # NGN 150,000
@@ -179,7 +184,7 @@ async def paystack_webhook(
 
     now = datetime.now(timezone.utc)
     user.class_started_at = now
-    user.class_expires_at = now + relativedelta(months=1)
+    user.class_expires_at = _one_month_after(now)
     if product_slug == "one-on-one":
         user.mentorship_lifetime = True
     user.has_paid_tuition = True
