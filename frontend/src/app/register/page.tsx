@@ -90,9 +90,9 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <label htmlFor="register-password" className="block text-sm font-medium text-slate-100">Password</label>
-              <InlineHelp text="At least 8 characters. Choose a password you do not use on other websites.">
+              <InlineHelp id="register-password-help" text="At least 8 characters. Choose a password you do not use on other websites.">
                 <div className="relative">
-                  <input id="register-password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Create a password" className={`${inputClass} pr-14`} style={inputStyle} />
+                  <input id="register-password" aria-describedby="register-password-help" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Create a password" className={`${inputClass} pr-14`} style={inputStyle} />
                   <button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="register-password" className="absolute inset-y-0 right-1 flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-300 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400">
                     {showPassword ? (
                       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.6 5.2A10.8 10.8 0 0112 5c5 0 9 4.2 10 7a12 12 0 01-3.2 4.7M6.1 6.1C4.2 7.5 2.8 9.6 2 12c1 2.8 5 7 10 7 1.6 0 3.1-.4 4.4-1.2M9.9 9.9a3 3 0 004.2 4.2" /></svg>
