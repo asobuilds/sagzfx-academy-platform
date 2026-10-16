@@ -74,8 +74,8 @@ export default function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border outline-none focus:border-cyan-500/60 transition text-sm"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+              className="w-full px-4 py-3 rounded-xl bg-black/30 auth-input border outline-none focus:border-cyan-500/60 transition text-sm"
+              style={{ borderColor: "var(--border-subtle)" }}
             />
           </div>
 
@@ -89,8 +89,8 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border outline-none focus:border-cyan-500/60 transition text-sm"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+              className="w-full px-4 py-3 rounded-xl bg-black/30 auth-input border outline-none focus:border-cyan-500/60 transition text-sm"
+              style={{ borderColor: "var(--border-subtle)" }}
             />
           </div>
 
@@ -105,8 +105,8 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 border outline-none focus:border-cyan-500/60 transition text-sm"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
+              className="w-full px-4 py-3 rounded-xl bg-black/30 auth-input border outline-none focus:border-cyan-500/60 transition text-sm"
+              style={{ borderColor: "var(--border-subtle)" }}
             />
           </div>
 
