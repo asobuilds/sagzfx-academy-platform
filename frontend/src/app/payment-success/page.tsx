@@ -5,17 +5,19 @@ import { useEffect, useState } from "react";
 import { endpoints, type PaymentStatus } from "@/lib/api";
 
 export default function PaymentSuccessPage() {
+  const [reference] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("reference"),
+  );
   const [payment, setPayment] = useState<PaymentStatus | null>(null);
-  const [checking, setChecking] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(Boolean(reference));
+  const [error, setError] = useState<string | null>(
+    reference ? null : "No Paystack payment reference was provided.",
+  );
 
   useEffect(() => {
-    const reference = new URLSearchParams(window.location.search).get("reference");
-    if (!reference) {
-      setError("No Paystack payment reference was provided.");
-      setChecking(false);
-      return;
-    }
+    if (!reference) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -42,7 +44,7 @@ export default function PaymentSuccessPage() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [reference]);
 
   const activated = payment?.status === "confirmed";
   return (
