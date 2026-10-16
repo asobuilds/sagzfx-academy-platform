@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { galleryFull, galleryThumb, type MediaItem } from "@/lib/media";
 
 type Props = {
@@ -12,6 +12,16 @@ type Props = {
 export default function MediaGallery({ items, columns = 3 }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [broken, setBroken] = useState<Record<string, boolean>>({});
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const returnFocus = useRef<number | null>(null);
+
+  const closeLightbox = () => {
+    setOpenIndex(null);
+    const previous = returnFocus.current;
+    if (previous !== null) {
+      requestAnimationFrame(() => thumbnailRefs.current[previous]?.focus());
+    }
+  };
 
   const colClass =
     columns === 2
@@ -38,8 +48,9 @@ export default function MediaGallery({ items, columns = 3 }: Props) {
           return (
             <button
               key={item.name}
+              ref={(node) => { thumbnailRefs.current[idx] = node; }}
               type="button"
-              onClick={() => !isBroken && setOpenIndex(idx)}
+              onClick={() => { if (!isBroken) { returnFocus.current = idx; setOpenIndex(idx); } }}
               className="glass rounded-2xl overflow-hidden hover-lift text-left relative group"
               disabled={isBroken}
             >
@@ -82,7 +93,7 @@ export default function MediaGallery({ items, columns = 3 }: Props) {
         <Lightbox
           items={items}
           index={openIndex}
-          onClose={() => setOpenIndex(null)}
+          onClose={closeLightbox}
           onPrev={() =>
             setOpenIndex((i) =>
               i === null ? null : (i - 1 + items.length) % items.length,
@@ -113,8 +124,40 @@ function Lightbox({
   onNext: () => void;
 }) {
   const item = items[index];
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        onPrev();
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        onNext();
+      } else if (event.key === "Tab") {
+        const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
+        if (!controls.length) return;
+        if (event.shiftKey && document.activeElement === controls[0]) {
+          event.preventDefault();
+          controls[controls.length - 1].focus();
+        } else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+          event.preventDefault();
+          controls[0].focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose, onPrev, onNext]);
+
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -122,6 +165,7 @@ function Lightbox({
       onClick={onClose}
     >
       <button
+        ref={closeRef}
         type="button"
         onClick={onClose}
         aria-label="Close"
@@ -155,6 +199,8 @@ function Lightbox({
           className="w-full max-h-[75vh] object-contain rounded-2xl"
         />
         <p
+          aria-live="polite"
+          aria-atomic="true"
           className="text-center text-sm"
           style={{ color: "var(--text-secondary)" }}
         >
