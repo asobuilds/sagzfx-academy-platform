@@ -6,6 +6,9 @@ Endpoints:
   POST /payments/webhook/paystack    - receive Paystack confirmation
 """
 import json
+from datetime import datetime, timezone
+
+from dateutil.relativedelta import relativedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
@@ -40,6 +43,19 @@ PRODUCTS = {
         "amount_kobo": 500_000_00,     # NGN 500,000
         "description": "SAGZFX One-on-One Mentorship",
     },
+}
+
+PRODUCT_PLANS = {
+    "tuition": "beginner",
+    "advance": "advanced",
+    "one-on-one": "masters",
+}
+
+PLAN_RANK = {
+    "registered": 0,
+    "beginner": 1,
+    "advanced": 2,
+    "masters": 3,
 }
 
 
@@ -117,11 +133,34 @@ async def paystack_webhook(
     if not user_id or not product_slug:
         return {"received": True, "warning": "missing metadata"}
 
-    user = await db.get(User, user_id)
+    product = PRODUCTS.get(product_slug)
+    if product is None:
+        return {"received": True, "warning": "unknown product"}
+
+    if (
+        data.get("status") != "success"
+        or data.get("currency") != "NGN"
+        or data.get("amount") != product["amount_kobo"]
+    ):
+        return {"received": True, "warning": "payment details mismatch"}
+
+    reference = data.get("reference")
+    if not isinstance(reference, str) or not reference:
+        return {"received": True, "warning": "missing reference"}
+
+    # Serialize webhook processing for this user. Follow-up (not yet implemented):
+    # add a database-level UNIQUE constraint for premium_purchases.product_slug
+    # on rows matching 'paid:%' to enforce reference idempotency.
+    user = (
+        await db.execute(
+            select(User)
+            .where(User.user_id == user_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
     if user is None:
         return {"received": True, "warning": "unknown user"}
 
-    reference = data.get("reference")
     existing = await db.execute(
         select(PremiumPurchase).where(
             PremiumPurchase.user_id == user.user_id,
@@ -131,12 +170,20 @@ async def paystack_webhook(
     if existing.scalar_one_or_none() is not None:
         return {"received": True, "already_processed": True}
 
-    # Apply product effect:
-    #   tuition       -> unlocks Beginner + Market Structure tiers (has_paid_tuition)
-    #   advance       -> same as tuition, plus marks advance access
-    #   one-on-one    -> has_paid_tuition + premium purchase row for masters
-    if product_slug in ("tuition", "advance"):
-        user.has_paid_tuition = True
+    # Every successful purchase restarts the one-month class period.
+    # Lower-tier purchases never downgrade a higher existing entitlement.
+    purchased_plan = PRODUCT_PLANS[product_slug]
+    current_plan = user.learning_plan or "registered"
+    if PLAN_RANK[purchased_plan] > PLAN_RANK[current_plan]:
+        user.learning_plan = purchased_plan
+
+    now = datetime.now(timezone.utc)
+    user.class_started_at = now
+    user.class_expires_at = now + relativedelta(months=1)
+    user.mentorship_lifetime = True
+    user.has_paid_tuition = True
+    if user.tuition_activated_at is None:
+        user.tuition_activated_at = now
 
     purchase = PremiumPurchase(
         user_id=user.user_id,
