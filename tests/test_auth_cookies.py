@@ -2,6 +2,9 @@ import inspect
 import unittest
 
 from fastapi import Response
+from unittest.mock import patch
+
+from app.core.config import settings
 
 from app.api.v1.auth import _clear_auth_cookies, _set_auth_cookies
 from app.api import deps
@@ -9,8 +12,9 @@ from app.api import deps
 
 class AuthCookieSecurityTests(unittest.TestCase):
     def test_auth_cookies_are_httponly_secure_and_cross_site_compatible(self):
-        response = Response()
-        _set_auth_cookies(response, "access-token", "refresh-token")
+        with patch.object(settings, "COOKIE_SECURE", True):
+            response = Response()
+            _set_auth_cookies(response, "access-token", "refresh-token")
         headers = response.headers.getlist("set-cookie")
         self.assertEqual(len(headers), 2)
         for header in headers:
@@ -18,6 +22,19 @@ class AuthCookieSecurityTests(unittest.TestCase):
             self.assertIn("httponly", lower)
             self.assertIn("secure", lower)
             self.assertIn("samesite=none", lower)
+            self.assertIn("path=/", lower)
+
+    def test_auth_cookies_allow_insecure_local_development(self):
+        with patch.object(settings, "COOKIE_SECURE", False):
+            response = Response()
+            _set_auth_cookies(response, "access-token", "refresh-token")
+        headers = response.headers.getlist("set-cookie")
+        self.assertEqual(len(headers), 2)
+        for header in headers:
+            lower = header.lower()
+            self.assertIn("httponly", lower)
+            self.assertNotIn("secure", lower)
+            self.assertIn("samesite=lax", lower)
             self.assertIn("path=/", lower)
 
     def test_logout_expires_both_auth_cookies(self):

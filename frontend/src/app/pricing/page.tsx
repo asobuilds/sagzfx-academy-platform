@@ -7,7 +7,7 @@ import { ApiError, endpoints } from "@/lib/api";
 const plans = [
   { slug: "beginner", name: "Beginner", price: "₦150,000", access: "12 Beginner modules" },
   { slug: "advanced", name: "Advanced", price: "₦250,000", access: "Beginner + Market Structure + Advanced" },
-  { slug: "masters", name: "Masters & One-on-One", price: "₦500,000", access: "All 47 modules + Masterclass" },
+  { slug: "masters", name: "Masters & One-on-One", price: "₦500,000", access: "All 57 modules including Masterclass" },
 ] as const;
 
 export default function PricingPage() {

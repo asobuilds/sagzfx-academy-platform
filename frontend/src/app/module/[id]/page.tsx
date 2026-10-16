@@ -338,7 +338,7 @@ export default function ModulePage() {
           {/* Learning outcomes */}
           {module.learning_outcomes.length > 0 && (
             <div className="glass-strong rounded-3xl p-6 space-y-4">
-              <span className="pill pill-blue">What You'll Learn</span>
+              <span className="pill pill-blue">What You&apos;ll Learn</span>
               <ul className="space-y-3">
                 {module.learning_outcomes.map((o, i) => (
                   <li key={i} className="flex gap-3 text-sm leading-relaxed">

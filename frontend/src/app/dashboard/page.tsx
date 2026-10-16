@@ -10,6 +10,7 @@ import {
   type User,
   type CatalogResponse,
   type ModuleSummary,
+  type BrandInfo,
 } from "@/lib/api";
 
 type RealtimeConfig = {
@@ -19,20 +20,13 @@ type RealtimeConfig = {
   access_tier: string;
 };
 
-type MT5Status = {
-  bound: boolean;
-  login: string | null;
-  server: string | null;
-  exness_ib_link: string;
-};
-
 export default function DashboardPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [realtime, setRealtime] = useState<RealtimeConfig | null>(null);
-  const [mt5, setMt5] = useState<MT5Status | null>(null);
+  const [brand, setBrand] = useState<BrandInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,13 +35,13 @@ export default function DashboardPage() {
       endpoints.me(),
       endpoints.catalog(),
       endpoints.realtimeConfig(),
-      endpoints.mt5Status(),
+      endpoints.brand(),
     ])
-      .then(([u, c, r, m]) => {
+      .then(([u, c, r, b]) => {
         setUser(u);
         setCatalog(c);
         setRealtime(r);
-        setMt5(m);
+        setBrand(b);
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
@@ -72,7 +66,7 @@ export default function DashboardPage() {
   }
 
   // ─── Error ──────────────────────────────────────────────
-  if (error || !user || !catalog || !realtime || !mt5) {
+  if (error || !user || !catalog || !realtime || !brand) {
     return (
       <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
         <div className="glass-strong rounded-2xl p-8 max-w-md text-center space-y-4">
@@ -153,17 +147,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Progress strip */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4">
           <StatBox
             label="Modules Unlocked"
             value={`${catalog.unlocked_count} / ${catalog.total}`}
           />
           <StatBox label="Community" value={realtime.channel} mono />
-          <StatBox
-            label="MT5 Demo"
-            value={mt5.bound ? (mt5.login ?? "Bound") : "Not activated"}
-            mono={mt5.bound}
-          />
           <StatBox label="Plan" value={tier.toUpperCase()} />
           <StatBox
             label="Class Ends"
@@ -177,64 +166,29 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── MT5 Card ────────────────────────────────────── */}
-      <div className="glass hover-lift rounded-3xl p-8 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center font-bold text-white">
-              MT5
-            </div>
-            <div>
-              <h2
-                className="text-2xl font-bold tracking-tight"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                Exness Demo Sandbox
-              </h2>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Risk-free environment linked to live market feeds
-              </p>
-            </div>
-          </div>
-
-          {mt5.bound ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="pill pill-green">Active</span>
-              <span className="font-mono text-sm glass px-3 py-1.5 rounded-lg">
-                {mt5.login}
-              </span>
-            </div>
-          ) : (
-            <span className="pill pill-blue">Available</span>
-          )}
-        </div>
-
-        <div
-          className="rounded-2xl p-4 border"
-          style={{
-            background: "rgba(5, 11, 20, 0.6)",
-            borderColor: "var(--border-subtle)",
-          }}
-        >
-          <p
-            className="text-xs uppercase tracking-wider mb-2"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Exness Partner Link
-          </p>
+      {/* ─── Exness partner link ────────────────────────── */}
+      <div className="glass rounded-3xl p-8 space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">
+          Exness Partner Link
+        </h2>
+        <p style={{ color: "var(--text-secondary)" }}>
+          Visit the Exness partner page if you wish to explore its brokerage
+          services. This link does not provide an MT5 demo account through SAGZFX.
+        </p>
+        {brand.exness_ib_link ? (
           <a
-            href={mt5.exness_ib_link}
+            href={brand.exness_ib_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyan-400 hover:text-cyan-300 font-mono text-sm break-all"
+            className="text-cyan-400 hover:text-cyan-300 text-sm break-all"
           >
-            {mt5.exness_ib_link}
+            {brand.exness_ib_link}
           </a>
-          <p className="text-xs pt-2" style={{ color: "var(--text-muted)" }}>
-            Open a live Exness account via this link to keep your learning
-            progress and unlock live-market tools.
+        ) : (
+          <p style={{ color: "var(--text-muted)" }}>
+            Partner link is currently unavailable.
           </p>
-        </div>
+        )}
       </div>
 
       {/* ─── Curriculum ──────────────────────────────────── */}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { endpoints, ApiError, type User } from "@/lib/api";
+import { endpoints, type User } from "@/lib/api";
 
 export default function Navbar() {
   const router = useRouter();
@@ -13,7 +13,6 @@ export default function Navbar() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
 
     endpoints
       .me()

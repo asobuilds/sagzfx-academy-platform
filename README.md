@@ -9,15 +9,36 @@ Production web platform for SAGZFX ACADEMY: authenticated learning plans, Paysta
 - Database: Neon PostgreSQL
 - Hosting: Render (backend and frontend)
 - Payments: Paystack
-- Browser auth: Secure HttpOnly cookies
+- Browser auth: backend-managed Secure HttpOnly cookies; frontend uses
+  credentials: "include" and /api/v1/auth/me as the session authority.
+  No browser localStorage token persistence.
+- Images: Cloudinary, cloud nirybrdh
+- Videos: Supabase Storage, project dgxyzhphyprrcwdvzrue, bucket media
+- Live deployment: https://sagzfx-academy.onrender.com
 - Reference FX data: Frankfurter educational mid-market/reference rates
+
+## Curriculum
+
+The current intended curriculum contains 57 modules across four tiers:
+
+| Tier | Modules |
+| --- | ---: |
+| Beginner | 12 |
+| Market Structure | 14 |
+| Advanced | 20 |
+| Masterclass | 11 |
+
+Lesson content is stored in course_modules.lesson_body as Markdown.
+Additional lesson fields include learning_outcomes (TEXT[]),
+assignment (TEXT), checkpoint_questions (JSONB), and lesson metadata.
+Markdown source files are maintained under frontend/content/lessons/.
 
 ## Learning plans
 
 - Registered: free account; no paid curriculum.
 - Beginner: NGN 150,000; Beginner modules.
 - Advanced: NGN 250,000; Beginner + Market Structure + Advanced.
-- Masters & One-on-One: NGN 500,000; all 47 modules including Masterclass.
+- Masters & One-on-One: NGN 500,000; all 57 modules including Masterclass.
 - Paid class period: one month.
 - Lifetime mentorship entitlement is retained after enrollment.
 - After class expiry, modules successfully opened during the active class remain accessible; eligible modules never opened during the active period lock.
@@ -56,6 +77,15 @@ Current sequence:
 2. practice account/orders
 3. practice ledger
 4. practice trade close-accounting fields
+5. feedback and reviews
+6. lesson content columns — applied to live Neon (operator-confirmed)
+7. Masterclass expansion to 57 modules — applied to live Neon
+   (operator-confirmed)
+
+Payment product slugs are tuition, advance, and one-on-one.
+Their corresponding learning plans are beginner, advanced, and masters.
+Live payment-to-entitlement verification remains a release gate until
+the webhook and reference-specific confirmation flow are tested.
 
 ## Development
 
