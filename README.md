@@ -1,111 +1,210 @@
 # SAGZFX ACADEMY Platform
 
-Production web platform for SAGZFX ACADEMY: authenticated learning plans, Paystack enrollment, curriculum access, lifetime mentorship entitlement, and a free virtual-money FX practice simulator.
+Production web platform for SAGZFX ACADEMY: authenticated learning plans,
+Paystack enrollment, curriculum access, lifetime mentorship entitlement, and
+a free virtual-money FX practice simulator.
+
+Built for the client's physical campus at Shop 5 Aib Plaza, Keffi, Abuja
+Express Way, and for online learners worldwide. RC 8064497.
+
+---
 
 ## Production stack
 
-- Backend: FastAPI / Python 3.12.3
-- Frontend: Next.js 16 + TypeScript + Tailwind CSS
-- Database: Neon PostgreSQL
-- Hosting: Render (backend and frontend)
-- Payments: Paystack
-- Browser auth: backend-managed Secure HttpOnly cookies; frontend uses
-  credentials: "include" and /api/v1/auth/me as the session authority.
-  No browser localStorage token persistence.
-- Images: Cloudinary, cloud nirybrdh
-- Videos: Supabase Storage, project dgxyzhphyprrcwdvzrue, bucket media
-- Live deployment: https://sagzfx-academy.onrender.com
-- Reference FX data: Frankfurter educational mid-market/reference rates
+- **Backend**: FastAPI / Python 3.12.3
+- **Frontend**: Next.js 16 + TypeScript + Tailwind CSS
+- **Database**: Neon PostgreSQL
+- **Hosting**: Render (two services — frontend Node, backend Python)
+- **Payments**: Paystack (live)
+- **Browser auth**: backend-managed Secure HttpOnly cookies. The frontend
+  uses `credentials: "include"` and `/api/v1/auth/me` as the source of
+  session truth. No browser localStorage token persistence.
+- **Images**: Cloudinary, cloud `nirybrdh`
+- **Videos**: Supabase Storage, project `dgxyzhphyprrcwdvzrue`, bucket `media`
+- **Reference FX data**: Frankfurter educational mid-market rates
+
+## Live URLs
+
+- **Frontend**: https://sagzfx-academy.onrender.com
+- **Backend API**: https://sagzfx-academy-api.onrender.com
+- **Health check**: `/api/v1/db-check`
+
+---
 
 ## Curriculum
 
-The current intended curriculum contains 57 modules across four tiers:
+The curriculum contains **57 modules across four tiers**:
 
-| Tier | Modules |
-| --- | ---: |
-| Beginner | 12 |
-| Market Structure | 14 |
-| Advanced | 20 |
-| Masterclass | 11 |
+| Tier | Modules | Typical access |
+| --- | ---: | --- |
+| Beginner | 12 | Beginner plan |
+| Market Structure | 14 | Advanced plan |
+| Advanced | 20 | Advanced plan |
+| Masterclass | 11 | Masters plan |
 
-Lesson content is stored in course_modules.lesson_body as Markdown.
-Additional lesson fields include learning_outcomes (TEXT[]),
-assignment (TEXT), checkpoint_questions (JSONB), and lesson metadata.
-Markdown source files are maintained under frontend/content/lessons/.
+Lesson content is stored in `course_modules.lesson_body` as Markdown.
+Additional lesson fields:
+
+- `learning_outcomes` (TEXT[]) — bullet list of what the student will learn
+- `assignment` (TEXT) — practical task per lesson
+- `checkpoint_questions` (JSONB) — question, options, correct answer, explanation
+- `estimated_minutes` (INT) — reading time estimate
+- `lesson_status` (VARCHAR) — draft / in_review / published
+
+Authored lesson source files live under `frontend/content/lessons/`.
+
+---
 
 ## Learning plans
 
-- Registered: free account; no paid curriculum.
-- Beginner: NGN 150,000; Beginner modules.
-- Advanced: NGN 250,000; Beginner + Market Structure + Advanced.
-- Masters & One-on-One: NGN 500,000; all 57 modules including Masterclass.
-- Paid class period: one month.
-- Lifetime mentorship entitlement is retained after enrollment.
-- After class expiry, modules successfully opened during the active class remain accessible; eligible modules never opened during the active period lock.
+| Plan | Price | Unlocks | Class period | Mentorship |
+| --- | ---: | --- | --- | --- |
+| Registered | Free | Practice simulator + account | — | — |
+| Beginner | ₦150,000 | 12 Beginner modules | 1 month | Not included |
+| Advanced | ₦250,000 | 46 modules (Beginner + Market Structure + Advanced) | 1 month | Not included |
+| Masters & One-on-One | ₦500,000 | All 57 modules including Masterclass | 1 month | Lifetime |
+
+**Business rules:**
+
+- **One-month class period** — starts on purchase, expires one calendar
+  month later.
+- **Never downgrade** — purchasing a lower-tier plan preserves the
+  student's highest existing entitlement.
+- **Module retention** — modules opened during the active class remain
+  accessible after expiry. Eligible modules never opened during the class
+  lock afterward.
+- **Lifetime mentorship** — granted only with the Masters plan.
+
+### Payment product slugs
+
+The backend Paystack catalog uses these product slugs:
+
+| Product slug | Learning plan granted | Amount |
+| --- | --- | ---: |
+| `beginner` | beginner | ₦150,000 |
+| `advanced` | advanced | ₦250,000 |
+| `masters` | masters | ₦500,000 |
+
+The webhook grants `learning_plan`, `class_started_at`, `class_expires_at`,
+`has_paid_tuition`, `tuition_activated_at`, and (for Masters only)
+`mentorship_lifetime`. It validates product, currency, amount, and reference
+before granting access.
+
+---
+
+## Student experience
+
+Every student-facing page follows the same educational architecture. Each
+page answers four questions for the student:
+
+1. **What is this page for?** — one-line plain-English description
+2. **What do I do here?** — collapsible step-by-step guide
+3. **What does this control mean?** — inline helper text on unfamiliar
+   controls, and glossary definitions for trading terms
+4. **What should I do next?** — a "What's next?" cue at the end of the page
+
+### Shared educational primitives
+
+All under `frontend/src/components/educational/`:
+
+- `PageIntro` — consistent page title + one-line description
+- `HowToGuide` — collapsible, accessible how-to guide with remembered
+  open/closed preference
+- `InlineHelp` — muted helper text associated with a control via
+  `aria-describedby`
+- `TermDefinition` — accessible glossary popover for trading terms
+- `EducationalEmptyState` — explains why a section is empty, what action
+  fills it, and where that action lives
+- `NextStepCue` — context-aware next-step cue; never points to a locked
+  destination
+
+### Shared student components
+
+All under `frontend/src/components/student/`:
+
+- Dashboard: `PrimaryLearningAction`, `LearningPlanSummary`,
+  `CurriculumSection`, `ModuleRow`
+- Lessons: `LessonHeader`, `LessonGuide`, `LessonReader`,
+  `CheckpointCard`, `AssignmentPanel`, `LessonNavigation`,
+  `LearningOutcomes`
+- Pricing: `PricingCard`, `PlanFeatureList`, `PlanComparisonTable`,
+  `PaymentExplanation`, `MotivationSection`, `PricingFAQ`
+
+### Glossary
+
+`frontend/src/lib/glossary.ts` is the single source of truth for
+plain-English definitions of trading terms (forex, currency-pair, pip,
+lot-size, spread, entry-price, position, stop-loss, and others). The
+glossary is used across the platform wherever these terms first appear.
+
+### Content rules
+
+Lesson content and interface copy follow these rules:
+
+- No profit promises, win rates, or guaranteed outcomes anywhere
+- No claims that a chart reveals institutional intent
+- Every chart walkthrough acknowledges that a setup can fail
+- Language: plain English, second person ("you"), no hype
+- Match the voice of the lesson content in
+  `frontend/content/lessons/`
+
+---
 
 ## SAGZFX Practice Trading
 
-Practice Trading is free for every authenticated account and is independent of the paid learning plan.
+Practice Trading is free for every authenticated account and is independent
+of the paid learning plan.
 
 Implemented:
+
 - persistent USD 10,000 virtual practice account
 - account reset with audited balance delta
 - account/order/ledger persistence in PostgreSQL
 - authenticated user-scoped ledger and order history
 - free reference FX quotes
-- virtual market Buy/Sell for EURUSD, GBPUSD and AUDUSD
+- virtual market Buy/Sell for EURUSD, GBPUSD, AUDUSD
 - persisted open/closed positions
 - realized P/L applied transactionally to virtual balance
 - ledger entry for realized P/L
-- practice workspace with balance, open positions, trade history, reset, ledger and basic analytics
-- separate Exness partner registration link
+- practice workspace with balance, open positions, trade history, reset,
+  ledger, and basic analytics
+- separate Exness partner registration link at
+  `https://one.exnessonelink.com/a/ut6xqvmg34`
 
-Important: Frankfurter rates are educational reference/mid-market data. They are not broker bid/ask ticks and are not represented as real-time Exness/MT5 execution. USDJPY, USDCHF and USDCAD remain reference-display only until correct USD account-currency conversion is implemented. Always-on SL/TP or pending-order triggering is not claimed on the current free/sleeping infrastructure.
+**Important**: Frankfurter rates are educational reference / mid-market
+data. They are not broker bid/ask ticks and are not represented as
+real-time Exness/MT5 execution. USDJPY, USDCHF, and USDCAD remain
+reference-display only until USD account-currency conversion is
+implemented. Always-on SL/TP or pending-order triggering is not claimed
+on the current free/sleeping infrastructure.
 
-## Production URLs
-
-- Frontend: https://sagzfx-academy.onrender.com
-- API: https://sagzfx-academy-api.onrender.com
-- API health/database check: /api/v1/db-check
+---
 
 ## Database migrations
 
-Migrations are in `migrations/` and must be applied to Neon before deploying code that depends on new columns. Never treat CI success as proof that a production migration is live.
+Migrations are in `migrations/` and must be applied to Neon before deploying
+code that depends on new columns. **Never treat CI success as proof that a
+production migration is live.**
 
 Current sequence:
-1. learning-plan entitlements
-2. practice account/orders
-3. practice ledger
-4. practice trade close-accounting fields
-5. feedback and reviews
-6. lesson content columns — applied to live Neon (operator-confirmed)
-7. Masterclass expansion to 57 modules — applied to live Neon
-   (operator-confirmed)
 
-Payment product slugs are tuition, advance, and one-on-one.
-Their corresponding learning plans are beginner, advanced, and masters.
-Live payment-to-entitlement verification remains a release gate until
-the webhook and reference-specific confirmation flow are tested.
+1. `001` — learning-plan entitlements
+2. `002` — practice account/orders
+3. `003` — practice ledger
+4. `004` — practice trade close-accounting fields
+5. `005` — feedback and reviews
+6. `006` — lesson content columns — **applied to live Neon**
+7. `007` — Masterclass expansion to 57 modules — **applied to live Neon**
+
+---
 
 ## Development
 
-Backend:
+### Backend
+
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-Frontend:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Required production secrets/config belong in the hosting environment, never in Git. Do not commit `.env` files, database credentials, Paystack secrets, or JWT secrets.
-
-## Release rule
-
-A feature is complete only after its tests/CI pass, required production database/config changes are applied, the exact merged commit is deployed, and the live flow is verified. Mock/demo credentials must never be presented as production functionality.
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
