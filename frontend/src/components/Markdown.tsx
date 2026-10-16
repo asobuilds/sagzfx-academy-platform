@@ -78,7 +78,18 @@ export default function Markdown({ content, className = "" }: Props) {
   const lines = content.split("\n");
   const blocks: React.ReactNode[] = [];
   let listBuffer: string[] = [];
+  let paragraphBuffer: string[] = [];
   let key = 0;
+
+  const flushParagraph = () => {
+    if (paragraphBuffer.length === 0) return;
+    blocks.push(
+      <p key={key++} className="my-4 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+        {renderInline(paragraphBuffer.join(" "))}
+      </p>,
+    );
+    paragraphBuffer = [];
+  };
 
   const flushList = () => {
     if (listBuffer.length === 0) return;
@@ -103,12 +114,14 @@ export default function Markdown({ content, className = "" }: Props) {
 
     // Blank line -> flush list
     if (line.trim() === "") {
+      flushParagraph();
       flushList();
       continue;
     }
 
     // Horizontal rule
     if (/^---+$/.test(line.trim())) {
+      flushParagraph();
       flushList();
       blocks.push(
         <hr
@@ -123,6 +136,7 @@ export default function Markdown({ content, className = "" }: Props) {
     // Headings
     const h = /^(#{1,4})\s+(.+)$/.exec(line);
     if (h) {
+      flushParagraph();
       flushList();
       const level = h[1].length;
       const text = h[2];
@@ -169,6 +183,7 @@ export default function Markdown({ content, className = "" }: Props) {
     // Unordered list item
     const li = /^[-*]\s+(.+)$/.exec(line);
     if (li) {
+      flushParagraph();
       listBuffer.push(li[1]);
       continue;
     }
@@ -176,6 +191,7 @@ export default function Markdown({ content, className = "" }: Props) {
     // Blockquote
     const bq = /^>\s+(.+)$/.exec(line);
     if (bq) {
+      flushParagraph();
       flushList();
       blocks.push(
         <blockquote
@@ -192,20 +208,13 @@ export default function Markdown({ content, className = "" }: Props) {
       continue;
     }
 
-    // Paragraph
+    // Collect soft-wrapped lines into one Markdown paragraph.
     flushList();
-    blocks.push(
-      <p
-        key={key++}
-        className="my-4 leading-relaxed"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        {renderInline(line)}
-      </p>,
-    );
+    paragraphBuffer.push(line.trim());
   }
 
+  flushParagraph();
   flushList();
 
-  return <div className={className}>{blocks}</div>;
+  return <div className={`lesson-prose ${className}`.trim()}>{blocks}</div>;
 }
