@@ -232,7 +232,7 @@ export default function Home() {
                 className="text-4xl md:text-5xl font-bold tracking-tight"
                 style={{ fontFamily: "var(--font-space-grotesk)" }}
               >
-                Where you'll <span className="text-gradient">learn.</span>
+                Where you&apos;ll <span className="text-gradient">learn.</span>
               </h2>
               <p
                 className="text-lg max-w-2xl"
@@ -359,7 +359,7 @@ export default function Home() {
               className="text-4xl md:text-5xl font-bold tracking-tight"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Tools you'll <span className="text-gradient">actually use.</span>
+              Tools you&apos;ll <span className="text-gradient">actually use.</span>
             </h2>
             <p
               className="text-lg max-w-2xl"
