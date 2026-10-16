@@ -14,7 +14,7 @@ const tiers = [
 ] as const;
 
 function TierSection({ tierKey, label, modules, registered }: { tierKey: string; label: string; modules: ModuleSummary[]; registered: boolean }) {
-  const unlocked = modules.some((module) => module.unlocked);
+  const unlocked = modules.some((mod) => mod.unlocked);
   const [open, setOpen] = useState(!registered && unlocked);
   const id = useId();
   useEffect(() => {
@@ -49,7 +49,7 @@ function TierSection({ tierKey, label, modules, registered }: { tierKey: string;
         )}
         {modules.length === 0 ? (
           <p className="p-3 text-sm text-slate-300">No lessons are listed in this tier right now. Check your dashboard again later.</p>
-        ) : modules.map((module) => <ModuleRow key={module.module_id} module={module} />)}
+        ) : modules.map((mod) => <ModuleRow key={mod.module_id} module={mod} />)}
       </div>
     </section>
   );
@@ -58,10 +58,10 @@ function TierSection({ tierKey, label, modules, registered }: { tierKey: string;
 export default function CurriculumSection({ modules, registered }: { modules: ModuleSummary[]; registered: boolean }) {
   const groups = new Map<string, ModuleSummary[]>();
   for (const tier of tiers) groups.set(tier.key, []);
-  for (const module of modules) {
-    const key = module.tier_level.toLowerCase().replace(/[\s-]+/g, "_");
+  for (const mod of modules) {
+    const key = mod.tier_level.toLowerCase().replace(/[\s-]+/g, "_");
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(module);
+    groups.get(key)!.push(mod);
   }
   for (const group of groups.values()) group.sort((a, b) => a.sort_order - b.sort_order);
   return (
