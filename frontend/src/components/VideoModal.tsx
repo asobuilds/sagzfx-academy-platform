@@ -54,7 +54,6 @@ export default function VideoModal({ videoSrc, label, className = "" }: Props) {
             onClick={(e) => e.stopPropagation()}
             style={{ background: "#000" }}
           >
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video
               src={videoSrc}
               controls
